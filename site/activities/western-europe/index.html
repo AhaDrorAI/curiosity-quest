@@ -66,12 +66,12 @@
             z-index: 1100 !important;
         }
         .topo-pin.correct-pin {
-            background-color: #10b981 !important;
+            background-color: #047857 !important;
             border-color: #ecfdf5 !important;
             box-shadow: 0 0 0 4px #059669 !important;
         }
         .topo-pin.wrong-pin {
-            background-color: #ef4444 !important;
+            background-color: #b91c1c !important;
             border-color: #fef2f2 !important;
             box-shadow: 0 0 0 4px #dc2626 !important;
         }
@@ -95,11 +95,11 @@
         }
 
         /* צורות הסימונים לפי קטגוריה */
-        .pin-Landen { background-color: #d97706; border-radius: 6px; }
+        .pin-Landen { background-color: #b45309; border-radius: 6px; }
         .pin-Hoofdsteden { background-color: #e11d48; border-radius: 9999px; }
         .pin-Steden { background-color: #7c3aed; border-radius: 9999px; }
-        .pin-Wateren { background-color: #0284c7; border-radius: 9999px; font-style: italic; }
-        .pin-Gebieden { background-color: #059669; border-radius: 6px; }
+        .pin-Wateren { background-color: #0369a1; border-radius: 9999px; font-style: italic; }
+        .pin-Gebieden { background-color: #047857; border-radius: 6px; }
         .pin-Gebergten { background-color: #78350f; border-radius: 6px; }
         .pin-Plus { background-color: #4f46e5; border-radius: 6px; font-size: 10.5px; }
 
@@ -272,16 +272,25 @@
 
                         <!-- מפת Leaflet הגיאוגרפית -->
                         <div id="leaflet-map" class="w-full h-full z-10"></div>
+
+                        <!-- אם גבולות המפה המובנים לא נטענו: מסבירים, ונותנים לנסות שוב או לבחור מפה מקוונת. לא טוענים מפה חיצונית לבד. -->
+                        <div id="map-load-error" role="alert" class="hidden absolute inset-x-4 top-24 z-[1000] bg-white border border-rose-300 rounded-2xl shadow-lg p-4 text-sm text-slate-800 space-y-3">
+                            <p id="txt-map-error" class="font-semibold">The built-in map didn't load.</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" id="btn-map-retry" class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-4 py-2 rounded-xl text-xs">Try again</button>
+                                <button type="button" id="btn-map-online" class="bg-slate-100 hover:bg-slate-200 text-slate-800 border border-slate-300 font-bold px-4 py-2 rounded-xl text-xs">Use online map</button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- מקרא צבעים תחתון קבוע -->
                     <div class="bg-slate-50 px-3 py-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
                         <div id="map-legend-items" class="flex flex-wrap items-center gap-2">
-                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-600 inline-block"></span> A-G מדינות</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-700 inline-block"></span> A-G מדינות</span>
                             <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-rose-600 inline-block"></span> 1-6 ערי בירה</span>
                             <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-purple-600 inline-block"></span> 7-15 ערים</span>
-                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-sky-600 inline-block"></span> a-k מים ונהרות</span>
-                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-emerald-600 inline-block"></span> H-L אזורים</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-sky-700 inline-block"></span> a-k מים ונהרות</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-emerald-700 inline-block"></span> H-L אזורים</span>
                             <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-900 inline-block"></span> l-n הרים</span>
                             <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-indigo-600 inline-block"></span> Plus TOPO</span>
                         </div>
@@ -344,7 +353,10 @@
                                 </div>
                             </div>
 
-                            <div class="my-auto text-center space-y-2">
+                            <!-- מצב ריק: אין פריטים בסינון הנוכחי (למשל "דורש חזרה" בלי כוכבים) -->
+                            <div id="map-quiz-empty" role="status" class="hidden my-auto bg-amber-50 border border-amber-200 text-amber-950 rounded-xl p-3 text-sm font-semibold leading-relaxed text-center"></div>
+
+                            <div id="map-quiz-body" class="my-auto text-center space-y-2">
                                 <div id="map-quiz-prompt-label" class="text-xs text-slate-500 font-semibold">לחץ על הסימון הנכון במפה עבור:</div>
                                 <div id="map-quiz-target-main" class="text-2xl font-black text-slate-900" dir="ltr">Frankrijk</div>
                                 <div id="map-quiz-target-sub" class="text-xs font-bold text-amber-800">פְרַנְקְרַייק • צרפת</div>
@@ -440,7 +452,9 @@
                 </div>
 
                 <!-- כרטיסייה בגובה נעול של 280px למניעת כל קפיצה -->
-                <div class="perspective-1000 w-full h-[280px]">
+                <div id="fc-empty" role="status" class="hidden bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 text-sm font-semibold leading-relaxed text-center"></div>
+
+                <div id="fc-card-wrap" class="perspective-1000 w-full h-[280px]">
                     <div id="fc-card-inner" class="w-full h-full relative transform-style-3d cursor-pointer rounded-3xl shadow-lg">
                         <!-- צד קדמי -->
                         <div id="fc-face-front" class="backface-hidden absolute inset-0 bg-gradient-to-br from-teal-600 to-cyan-800 text-white rounded-3xl p-6 flex flex-col justify-between border-2 border-teal-400">
@@ -475,7 +489,7 @@
                 </div>
 
                 <!-- כפתורי ניווט בכרטיסיות -->
-                <div class="flex flex-wrap items-center justify-center gap-3 pt-1">
+                <div id="fc-nav" class="flex flex-wrap items-center justify-center gap-3 pt-1">
                     <button type="button" id="btn-fc-prev" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-4 py-2.5 rounded-xl text-sm transition">
                         ➡️ הקודם
                     </button>
@@ -523,8 +537,10 @@
                     </div>
                 </div>
 
+                <div id="wq-empty" role="status" class="hidden bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 text-sm font-semibold leading-relaxed text-center"></div>
+
                 <!-- תיבת השאלה בגובה קבוע -->
-                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 min-h-[135px] flex flex-col justify-center">
+                <div id="wq-question-box" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 min-h-[135px] flex flex-col justify-center">
                     <div id="wq-badge" class="text-xs font-bold text-indigo-700">קטגוריה • סימון</div>
                     <h3 id="wq-title" class="text-lg sm:text-xl font-black text-slate-900">איך אומרים בהולנדית?</h3>
                     <div id="wq-subtitle" class="text-xs text-slate-500"></div>
@@ -611,6 +627,11 @@
                 specialChars: 'אותיות מיוחדות:',
                 searchLabel: 'חיפוש',
                 pinAria: 'סימון',
+                emptyHard: "עדיין לא סימנתם מקומות ב-⭐ ״דורש חזרה״. סמנו מקומות במצב הלמידה החופשי, או בחרו קטגוריה אחרת.",
+                noResults: "לא נמצאו מקומות.",
+                mapError: "המפה המובנית לא נטענה. אפשר לנסות שוב, או להשתמש במפה מקוונת של Esri.",
+                mapRetry: "נסו שוב",
+                mapOnline: "מפה מקוונת (Esri)",
                 hardStar: 'דורש חזרה',
                 spellPrefixOk: 'כתבת נכון:',
                 spellPrefixWrong: 'הכתיב הנכון הוא:',
@@ -714,6 +735,11 @@
                 specialChars: 'Особые буквы:',
                 searchLabel: 'Поиск',
                 pinAria: 'метка',
+                emptyHard: "Пока нет мест, отмеченных ⭐ для повторения. Отметьте места в режиме свободного изучения или выберите другую категорию.",
+                noResults: "Ничего не найдено.",
+                mapError: "Встроенная карта не загрузилась. Попробуйте ещё раз или используйте онлайн-карту Esri.",
+                mapRetry: "Повторить",
+                mapOnline: "Онлайн-карта (Esri)",
                 hardStar: 'Требует повторения',
                 spellPrefixOk: 'Верно:',
                 spellPrefixWrong: 'Правильно:',
@@ -817,6 +843,11 @@
                 specialChars: 'Special letters:',
                 searchLabel: 'Search',
                 pinAria: 'symbol',
+                emptyHard: "No places are starred for review yet. Star places with ⭐ in Free Explore mode, or pick another category.",
+                noResults: "No places found.",
+                mapError: "The built-in map didn't load. Try again, or use an online map from Esri.",
+                mapRetry: "Try again",
+                mapOnline: "Use online map (Esri)",
                 hardStar: 'Needs review',
                 spellPrefixOk: 'Correct spelling:',
                 spellPrefixWrong: 'The correct spelling is:',
@@ -920,6 +951,11 @@
                 specialChars: 'Speciale letters:',
                 searchLabel: 'Zoeken',
                 pinAria: 'symbool',
+                emptyHard: "Je hebt nog geen plaatsen gemarkeerd met ⭐ om te oefenen. Markeer plaatsen in Vrij verkennen, of kies een andere categorie.",
+                noResults: "Geen plaatsen gevonden.",
+                mapError: "De ingebouwde kaart is niet geladen. Probeer het opnieuw, of gebruik een online kaart van Esri.",
+                mapRetry: "Opnieuw proberen",
+                mapOnline: "Online kaart (Esri)",
                 hardStar: 'Nog oefenen',
                 spellPrefixOk: 'Goed gespeld:',
                 spellPrefixWrong: 'De juiste spelling is:',
@@ -1371,11 +1407,17 @@
             return c ? (c[currentLang] || item.catHe) : item.catHe;
         }
 
-        // החלפת שפת האפליקציה (he, ru, en, nl)
+        // בחירת שפה מפורשת (לחיצה על כפתור שפה): נשמרת לביקור הבא, ואז מוחלת
         function setAppLanguage(lang) {
             if (!uiTranslations[lang]) return;
-            currentLang = lang;
             safeStorage.set('topo_app_lang', lang);
+            applyLanguage(lang);
+        }
+
+        // החלת שפה על הממשק בלבד, בלי לשמור. משמש בטעינה: קישור ?lang= מהמרכז לא דורס בחירה שמורה.
+        function applyLanguage(lang) {
+            if (!uiTranslations[lang]) return;
+            currentLang = lang;
 
             const t = uiTranslations[lang];
             document.title = t.pageTitle;
@@ -1401,6 +1443,9 @@
             document.getElementById('custom-zoom-out').title = t.zoomOut;
             document.getElementById('btn-fc-flip').textContent = t.fcFlip;
             document.getElementById('lbl-special-chars').textContent = t.specialChars;
+            document.getElementById('txt-map-error').textContent = t.mapError;
+            document.getElementById('btn-map-retry').textContent = t.mapRetry;
+            document.getElementById('btn-map-online').textContent = t.mapOnline;
             ['fc-cat-select', 'quiz-cat-filter'].forEach(id => document.getElementById(id).setAttribute('aria-label', t.filterCatLabel.replace(':', '')));
             document.getElementById('sidebar-quick-search').setAttribute('aria-label', t.quickSearchPlaceholder.replace('...', ''));
             document.getElementById('full-table-search').setAttribute('aria-label', t.searchLabel);
@@ -1442,11 +1487,11 @@
             document.getElementById('txt-show-labels').textContent = t.showLabels;
 
             document.getElementById('map-legend-items').innerHTML = `
-                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-600 inline-block"></span> ${t.legLanden}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-700 inline-block"></span> ${t.legLanden}</span>
                 <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-rose-600 inline-block"></span> ${t.legHoofdsteden}</span>
                 <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-purple-600 inline-block"></span> ${t.legSteden}</span>
-                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-sky-600 inline-block"></span> ${t.legWateren}</span>
-                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-emerald-600 inline-block"></span> ${t.legGebieden}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-sky-700 inline-block"></span> ${t.legWateren}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-emerald-700 inline-block"></span> ${t.legGebieden}</span>
                 <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-900 inline-block"></span> ${t.legGebergten}</span>
                 <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-indigo-600 inline-block"></span> Plus TOPO</span>
             `;
@@ -1597,6 +1642,12 @@
         let mapQuizScore = 0;
         let mapQuizTotal = 0;
         let mapQuizLocked = false;
+        let mapQuizAdvanceTimer = null; // מעבר אוטומטי לשאלה הבאה אחרי תשובה נכונה
+
+        // ביטול מעבר אוטומטי שממתין - כשעוברים שאלה ידנית, משנים סינון או מצב
+        function cancelPendingAdvance() {
+            if (mapQuizAdvanceTimer) { clearTimeout(mapQuizAdvanceTimer); mapQuizAdvanceTimer = null; }
+        }
 
         // מצב כרטיסיות
         let fcDeck = [...topoData];
@@ -1650,6 +1701,7 @@
         const NATURAL_EARTH_CREDIT = 'Borders: <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a>';
 
         const STUDY_BOUNDS = [[42.3, -10.5], [59.0, 15.0]];
+        const STUDY_COUNTRIES = ['Ireland', 'United Kingdom', 'Netherlands', 'Belgium', 'Luxembourg', 'France', 'Germany'];
 
         function setBaseMap(style) {
             if (currentTileLayer) { map.removeLayer(currentTileLayer); currentTileLayer = null; }
@@ -1664,27 +1716,15 @@
             }
         }
 
-        function initLeafletMap() {
-            map = L.map('leaflet-map', {
-                center: [50.2, 4.2],
-                zoom: 5,
-                minZoom: 4,
-                maxZoom: 10,
-                scrollWheelZoom: false,
-                zoomControl: false // כפתורי זום משלנו, בפינה קבועה
-            });
-            // התאמה לגודל המסך: כל אזור הלימוד נראה גם בטלפון
-            map.fitBounds(STUDY_BOUNDS);
-
-            // הפעלת כפתורי הזום המותאמים אישית (במקום אלו של Leaflet)
-            document.getElementById('custom-zoom-in').addEventListener('click', () => map.zoomIn());
-            document.getElementById('custom-zoom-out').addEventListener('click', () => map.zoomOut());
-
-            // גבולות מדינות מקומיים (europe.geojson נבנה מ-Natural Earth, נחלת הכלל) - כמו באטלס בית ספר
-            const studyCountries = ['Ireland', 'United Kingdom', 'Netherlands', 'Belgium', 'Luxembourg', 'France', 'Germany'];
-            fetch('europe.geojson')
+        // גבולות מדינות מקומיים (europe.geojson נבנה מ-Natural Earth, נחלת הכלל) - כמו באטלס בית ספר.
+        // אם הטעינה נכשלת מציגים הודעה עם "נסו שוב" ו"מפה מקוונת"; מפה חיצונית נטענת רק אם המבקר בוחר בה.
+        function loadLocalBorders(studyCountries) {
+            const errorBox = document.getElementById('map-load-error');
+            errorBox.classList.add('hidden');
+            return fetch('europe.geojson')
                 .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
                 .then(geoData => {
+                    if (vectorCountriesLayer) map.removeLayer(vectorCountriesLayer);
                     vectorCountriesLayer = L.geoJSON(geoData, {
                         style: function(feature) {
                             const name = feature.properties.name || feature.properties.NAME || '';
@@ -1705,10 +1745,28 @@
                     }
                 })
                 .catch(() => {
-                    // אם קובץ הגבולות לא נטען (למשל כשפותחים את הקובץ ישירות מהמחשב), עוברים למפת Esri
-                    document.getElementById('map-tile-select').value = 'esri_gray';
-                    setBaseMap('esri_gray');
+                    if (document.getElementById('map-tile-select').value === 'vector_clean') errorBox.classList.remove('hidden');
                 });
+        }
+
+        function initLeafletMap() {
+            map = L.map('leaflet-map', {
+                center: [50.2, 4.2],
+                zoom: 5,
+                minZoom: 4,
+                maxZoom: 10,
+                scrollWheelZoom: false,
+                zoomControl: false // כפתורי זום משלנו, בפינה קבועה
+            });
+            // התאמה לגודל המסך: כל אזור הלימוד נראה גם בטלפון
+            map.fitBounds(STUDY_BOUNDS);
+
+            // הפעלת כפתורי הזום המותאמים אישית (במקום אלו של Leaflet)
+            document.getElementById('custom-zoom-in').addEventListener('click', () => map.zoomIn());
+            document.getElementById('custom-zoom-out').addEventListener('click', () => map.zoomOut());
+
+            // גבולות מדינות מקומיים (europe.geojson נבנה מ-Natural Earth, נחלת הכלל) - כמו באטלס בית ספר
+            loadLocalBorders(STUDY_COUNTRIES);
 
             drawGeographicOverlays();
             renderLeafletMarkers();
@@ -1860,15 +1918,14 @@
                     mapQuizLocked = true;
                     mapQuizScore++;
                     if (pinEl) pinEl.classList.add('correct-pin');
-                    setMapQuizFeedback(`${t.correctMsg} ${item.code} = ${item.nl} (${getItemLocalName(item)})`, 'text-emerald-600');
+                    setMapQuizFeedback(`${t.correctMsg} ${item.code} = ${item.nl} (${getItemLocalName(item)})`, 'text-emerald-700');
                     speakDutch(item.nl);
                     updateMapQuizScoreUI();
-                    setTimeout(() => {
-                        nextMapQuizTurn();
-                    }, 1100);
+                    cancelPendingAdvance();
+                    mapQuizAdvanceTimer = setTimeout(() => { mapQuizAdvanceTimer = null; nextMapQuizTurn(); }, 1100);
                 } else {
                     if (pinEl) pinEl.classList.add('wrong-pin');
-                    setMapQuizFeedback(`${t.wrongPinMsg} ${item.code} (${item.nl}). ${t.searchForMsg} ${mapQuizTarget.nl}!`, 'text-rose-600');
+                    setMapQuizFeedback(`${t.wrongPinMsg} ${item.code} (${item.nl}). ${t.searchForMsg} ${mapQuizTarget.nl}!`, 'text-rose-700');
                     speakDutch(item.nl);
                     updateMapQuizScoreUI();
                 }
@@ -1918,6 +1975,11 @@
                        item.code.toLowerCase().includes(searchVal);
             });
 
+            if (filtered.length === 0) {
+                const t = uiTranslations[currentLang];
+                listEl.innerHTML = `<p class="empty-note text-xs text-slate-600 leading-relaxed p-2">${filterCat === 'hard' && !searchVal ? t.emptyHard : t.noResults}</p>`;
+                return;
+            }
             listEl.innerHTML = filtered.map(item => {
                 const isSel = selectedItem && selectedItem.id === item.id && mapInteractionMode === 'explore';
                 const pinClass = getCategoryPinClass(item.cat);
@@ -1949,6 +2011,7 @@
         // מצבי אימון על המפה (Find on Map / Name the Symbol)
         // ==========================================================
         function setMapInteractionMode(mode) {
+            cancelPendingAdvance();
             mapInteractionMode = mode;
             const btnExplore = document.getElementById('btn-mode-explore');
             const btnFind = document.getElementById('btn-mode-find');
@@ -1983,17 +2046,37 @@
         }
 
         function nextMapQuizTurn() {
+            cancelPendingAdvance();
             const t = uiTranslations[currentLang];
             mapQuizLocked = false;
             const filterCat = document.getElementById('map-filter-select').value;
-            let pool = topoData.filter(item => filterCat === 'all' || (filterCat === 'hard' && hardItems.includes(item.id)) || item.cat === filterCat);
-            if (pool.length === 0) pool = topoData; // fallback
+            const pool = topoData.filter(item => filterCat === 'all' || (filterCat === 'hard' && hardItems.includes(item.id)) || item.cat === filterCat);
+            const choicesBox = document.getElementById('map-quiz-choices');
+            const emptyBox = document.getElementById('map-quiz-empty');
+            const bodyBox = document.getElementById('map-quiz-body');
+            const nextBtn = document.getElementById('btn-map-quiz-next');
+            document.getElementById('map-quiz-mode-title').textContent = mapInteractionMode === 'find' ? t.modeFind : t.modeName;
+
+            // אין מה לשאול (למשל "דורש חזרה" בלי כוכבים): מצב ריק במקום שאלה על מקום שלא מוצג במפה
+            if (pool.length === 0) {
+                mapQuizTarget = null;
+                emptyBox.textContent = filterCat === 'hard' ? t.emptyHard : t.noResults;
+                emptyBox.classList.remove('hidden');
+                bodyBox.classList.add('hidden');
+                choicesBox.classList.add('hidden');
+                nextBtn.disabled = true;
+                nextBtn.classList.add('opacity-50');
+                setMapQuizFeedback('', 'text-slate-500');
+                renderLeafletMarkers();
+                return;
+            }
+            emptyBox.classList.add('hidden');
+            bodyBox.classList.remove('hidden');
+            nextBtn.disabled = false;
+            nextBtn.classList.remove('opacity-50');
             mapQuizTarget = pool[Math.floor(Math.random() * pool.length)];
 
-            const choicesBox = document.getElementById('map-quiz-choices');
-
             if (mapInteractionMode === 'find') {
-                document.getElementById('map-quiz-mode-title').textContent = t.modeFind;
                 document.getElementById('map-quiz-prompt-label').textContent = t.findPrompt;
                 document.getElementById('map-quiz-target-main').textContent = mapQuizTarget.nl;
                 document.getElementById('map-quiz-target-sub').textContent = `${getItemPron(mapQuizTarget)} • ${getItemLocalName(mapQuizTarget)} (${getItemCatLocal(mapQuizTarget)})`;
@@ -2002,7 +2085,6 @@
                 renderLeafletMarkers();
                 speakDutch(mapQuizTarget.nl);
             } else if (mapInteractionMode === 'name') {
-                document.getElementById('map-quiz-mode-title').textContent = t.modeName;
                 document.getElementById('map-quiz-prompt-label').textContent = `${t.namePromptPrefix} [${mapQuizTarget.code}] (${getItemCatLocal(mapQuizTarget)})?`;
                 document.getElementById('map-quiz-target-main').textContent = `${t.symbolWord}: ${mapQuizTarget.code}`;
                 document.getElementById('map-quiz-target-sub').textContent = `${t.nameHintPrefix} ${getItemLocalName(mapQuizTarget)}`;
@@ -2016,7 +2098,7 @@
 
                 choicesBox.classList.remove('hidden');
                 choicesBox.innerHTML = opts.map(o => `
-                    <button type="button" onclick="checkMapNameChoice(this, '${o.id}')"
+                    <button type="button" data-id="${o.id}" onclick="checkMapNameChoice(this, '${o.id}')"
                             class="bg-slate-100 hover:bg-teal-50 border border-slate-300 rounded-xl py-1.5 px-2 text-xs font-extrabold text-slate-800 truncate" dir="ltr">
                         ${o.nl}
                     </button>
@@ -2037,14 +2119,15 @@
             if (chosenId === mapQuizTarget.id) {
                 mapQuizLocked = true;
                 mapQuizScore++;
-                btn.className = "bg-emerald-600 text-white border border-emerald-700 rounded-xl py-1.5 px-2 text-xs font-extrabold truncate";
-                setMapQuizFeedback(`${t.correctMsg} ${mapQuizTarget.code} = ${mapQuizTarget.nl}`, 'text-emerald-600');
+                btn.className = "bg-emerald-700 text-white border border-emerald-800 rounded-xl py-1.5 px-2 text-xs font-extrabold truncate";
+                setMapQuizFeedback(`${t.correctMsg} ${mapQuizTarget.code} = ${mapQuizTarget.nl}`, 'text-emerald-700');
                 speakDutch(mapQuizTarget.nl);
                 updateMapQuizScoreUI();
-                setTimeout(() => nextMapQuizTurn(), 1100);
+                cancelPendingAdvance();
+                mapQuizAdvanceTimer = setTimeout(() => { mapQuizAdvanceTimer = null; nextMapQuizTurn(); }, 1100);
             } else {
-                btn.className = "bg-rose-600 text-white border border-rose-700 rounded-xl py-1.5 px-2 text-xs font-extrabold truncate";
-                setMapQuizFeedback(`${t.wrongChoiceMsg} ${chosenItem ? chosenItem.nl : ''}. ${t.tryAgainMsg}`, 'text-rose-600');
+                btn.className = "bg-rose-700 text-white border border-rose-800 rounded-xl py-1.5 px-2 text-xs font-extrabold truncate";
+                setMapQuizFeedback(`${t.wrongChoiceMsg} ${chosenItem ? chosenItem.nl : ''}. ${t.tryAgainMsg}`, 'text-rose-700');
                 updateMapQuizScoreUI();
             }
         }
@@ -2196,7 +2279,6 @@
         function initFlashcardsDeck() {
             const cat = document.getElementById('fc-cat-select').value;
             fcDeck = topoData.filter(i => cat === 'all' || (cat === 'hard' && hardItems.includes(i.id)) || i.cat === cat);
-            if (fcDeck.length === 0) fcDeck = [topoData[2]]; // fallback אם אין שום דבר מסומן
             fcIndex = 0;
             fcFlipped = false;
             renderFlashcard();
@@ -2219,6 +2301,16 @@
         function renderFlashcard() {
             const t = uiTranslations[currentLang];
             setFlashcardFlipped(false);
+
+            const isEmpty = fcDeck.length === 0;
+            const emptyBox = document.getElementById('fc-empty');
+            emptyBox.textContent = isEmpty ? t.emptyHard : '';
+            emptyBox.classList.toggle('hidden', !isEmpty);
+            document.getElementById('fc-card-wrap').classList.toggle('hidden', isEmpty);
+            document.getElementById('fc-nav').classList.toggle('hidden', isEmpty);
+            document.getElementById('btn-fc-shuffle').disabled = isEmpty;
+            if (isEmpty) return;
+            if (fcIndex >= fcDeck.length) fcIndex = 0;
 
             const item = fcDeck[fcIndex];
             if (!item) return;
@@ -2250,8 +2342,21 @@
             const t = uiTranslations[currentLang];
             wqAnswered = false;
             const cat = document.getElementById('quiz-cat-filter').value;
-            let pool = topoData.filter(i => cat === 'all' || (cat === 'hard' && hardItems.includes(i.id)) || i.cat === cat);
-            if (pool.length === 0) pool = topoData; // fallback
+            const pool = topoData.filter(i => cat === 'all' || (cat === 'hard' && hardItems.includes(i.id)) || i.cat === cat);
+            const emptyBox = document.getElementById('wq-empty');
+            const isEmpty = pool.length === 0;
+            emptyBox.textContent = isEmpty ? t.emptyHard : '';
+            emptyBox.classList.toggle('hidden', !isEmpty);
+            document.getElementById('wq-question-box').classList.toggle('hidden', isEmpty);
+            document.getElementById('btn-wq-next').disabled = isEmpty;
+            if (isEmpty) {
+                wqCurrent = null;
+                document.getElementById('wq-mc-area').innerHTML = '';
+                document.getElementById('wq-mc-area').classList.add('hidden');
+                document.getElementById('wq-spell-area').classList.add('hidden');
+                document.getElementById('wq-feedback-box').textContent = '';
+                return;
+            }
 
             wqCurrent = pool[Math.floor(Math.random() * pool.length)];
 
@@ -2276,7 +2381,7 @@
                 const opts = [wqCurrent, ...distractors].sort(() => Math.random() - 0.5);
 
                 document.getElementById('wq-mc-area').innerHTML = opts.map(o => `
-                    <button type="button" onclick="handleWrittenMcAnswer(this, '${o.id}')"
+                    <button type="button" data-id="${o.id}" onclick="handleWrittenMcAnswer(this, '${o.id}')"
                             class="bg-slate-50 hover:bg-teal-50 border-2 border-slate-200 rounded-2xl p-3 text-center transition flex flex-col items-center justify-center">
                         <span class="text-base font-black text-slate-900" dir="ltr">${o.nl}</span>
                         <span class="text-xs text-amber-800 font-semibold">${getItemPron(o)}</span>
@@ -2295,6 +2400,13 @@
             }
         }
 
+        // צביעת כפתור תשובה כנכון/שגוי: גם הטקסט שבתוכו הופך לבהיר, כדי שיישאר קריא על הרקע הכהה
+        function paintAnswerText(btn) {
+            btn.querySelectorAll('span').forEach(sp => {
+                sp.className = sp.className.replace(/\btext-(slate|amber|teal|emerald|rose)-\d+\b/g, '').trim() + ' text-white';
+            });
+        }
+
         function handleWrittenMcAnswer(btn, chosenId) {
             if (wqAnswered || !wqCurrent) return;
             const t = uiTranslations[currentLang];
@@ -2304,11 +2416,13 @@
             const fb = document.getElementById('wq-feedback-box');
             if (chosenId === wqCurrent.id) {
                 wqScore++;
-                btn.className = "bg-emerald-600 text-white border-2 border-emerald-700 rounded-2xl p-3 text-center flex flex-col items-center justify-center";
+                btn.className = "bg-emerald-700 text-white border-2 border-emerald-800 rounded-2xl p-3 text-center flex flex-col items-center justify-center";
+                paintAnswerText(btn);
                 fb.className = "text-xs sm:text-sm font-extrabold text-emerald-700";
                 fb.textContent = `${t.correctMsg} ${wqCurrent.nl} (${getItemPron(wqCurrent)})`;
             } else {
-                btn.className = "bg-rose-600 text-white border-2 border-rose-700 rounded-2xl p-3 text-center flex flex-col items-center justify-center";
+                btn.className = "bg-rose-700 text-white border-2 border-rose-800 rounded-2xl p-3 text-center flex flex-col items-center justify-center";
+                paintAnswerText(btn);
                 fb.className = "text-xs sm:text-sm font-extrabold text-rose-700";
                 fb.textContent = `❌ ${wqCurrent.nl} (${getItemPron(wqCurrent)})`;
             }
@@ -2370,9 +2484,10 @@
                 setTimeout(() => map.invalidateSize(), 50);
             }
             if (tabName === 'flashcards') {
-                renderFlashcard();
+                if (document.getElementById('fc-cat-select').value === 'hard') initFlashcardsDeck();
+                else renderFlashcard();
             }
-            if (tabName === 'quiz' && !wqCurrent) {
+            if (tabName === 'quiz' && (!wqCurrent || document.getElementById('quiz-cat-filter').value === 'hard')) {
                 loadNextWrittenQuestion();
             }
         }
@@ -2424,7 +2539,7 @@
 
             // אתחול מפת Leaflet
             initLeafletMap();
-            setAppLanguage(currentLang);
+            applyLanguage(currentLang);
 
             // ניווט ראשי
             document.querySelectorAll('.main-tab-btn').forEach(btn => {
@@ -2450,10 +2565,21 @@
 
             // סינון מפה והחלפת שכבת רקע
             document.getElementById('map-filter-select').addEventListener('change', () => {
+                cancelPendingAdvance();
                 renderLeafletMarkers();
                 if (mapInteractionMode !== 'explore') nextMapQuizTurn();
             });
-            document.getElementById('map-tile-select').addEventListener('change', (e) => setBaseMap(e.target.value));
+            document.getElementById('map-tile-select').addEventListener('change', (e) => {
+                setBaseMap(e.target.value);
+                if (e.target.value !== 'vector_clean') document.getElementById('map-load-error').classList.add('hidden');
+                else if (!vectorCountriesLayer) loadLocalBorders(STUDY_COUNTRIES);
+            });
+            document.getElementById('btn-map-retry').addEventListener('click', () => loadLocalBorders(STUDY_COUNTRIES));
+            document.getElementById('btn-map-online').addEventListener('click', () => {
+                document.getElementById('map-load-error').classList.add('hidden');
+                document.getElementById('map-tile-select').value = 'esri_gray';
+                setBaseMap('esri_gray');
+            });
             document.getElementById('chk-show-labels').addEventListener('change', () => renderLeafletMarkers());
             document.getElementById('sidebar-quick-search').addEventListener('input', () => renderSidebarQuickList());
 
@@ -2492,10 +2618,12 @@
                 if (fcDeck[fcIndex]) speakDutch(fcDeck[fcIndex].nl);
             });
             document.getElementById('btn-fc-next').addEventListener('click', () => {
+                if (!fcDeck.length) return;
                 fcIndex = (fcIndex + 1) % fcDeck.length;
                 renderFlashcard();
             });
             document.getElementById('btn-fc-prev').addEventListener('click', () => {
+                if (!fcDeck.length) return;
                 fcIndex = (fcIndex - 1 + fcDeck.length) % fcDeck.length;
                 renderFlashcard();
             });

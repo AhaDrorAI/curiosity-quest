@@ -37,16 +37,22 @@ netlify.toml               publish folder + security headers
 ## Commands
 
 ```bash
-npm install                # once
-npm run build              # map data, illustrations, activity CSS, share image -> dist/
-npm run check              # static checks (catalog, translations, files, links)
-npm run serve              # preview dist/ at http://localhost:8080
-node tools/smoke-hub.mjs http://localhost:8080        # browser tests for the hub
-node tools/smoke-geo.mjs http://localhost:8080 tools/out   # browser tests for the geography activity
-node tools/shoot.mjs http://localhost:8080 tools/out  # screenshots to review by eye
+npm install                        # once
+npx playwright install chromium    # once, the browser the tests and share image use
+npm run build                      # map data, illustrations, activity CSS, share image -> dist/
+npm test                           # static checks + every browser test against dist/ (must pass before deploying)
+npm run serve                      # preview dist/ at http://localhost:8080
+node tools/shoot.mjs http://localhost:8080 tools/out   # screenshots to review by eye
 ```
 
-Set `CHROME_PATH` if Playwright's own browser is not installed (e.g. `CHROME_PATH=/usr/bin/google-chrome`).
+- Browser: tests and the share image use Playwright's Chromium, or `CHROME_PATH` if you set it.
+  Without any browser the build still succeeds and keeps the committed `og-image.png`
+  (set `SKIP_OG_IMAGE=1` to skip it on purpose, e.g. on a hosting build server).
+- `npm test` runs: `check.mjs` (catalog, translations, files, links), `smoke-hub.mjs` (hub),
+  `smoke-geo.mjs` (geography first load), `smoke-geo-states.mjs` (states after interaction:
+  empty filters, language handoff, quiz timers, map-load failure, contrast after answering),
+  `a11y.mjs` (axe-core WCAG A/AA scan).
+- Tests derive counts from the catalog; never hard-code the number of adventures.
 
 ## How to add an adventure
 
@@ -59,6 +65,11 @@ Set `CHROME_PATH` if Playwright's own browser is not installed (e.g. `CHROME_PAT
    - Replace CDN scripts, Google Fonts and remote data files with local copies (`assets/fonts/fonts.css` already provides Rubik). If it used the Tailwind Play CDN, build its CSS with the Tailwind CLI like `tools/tailwind.config.cjs` does for western-europe and add that step to `tools/build.mjs`.
    - Guard every `localStorage` call with try/catch.
    - If the activity can start in a chosen language, have it read `?lang=` and set `langParam: "lang"` in the catalog. Only then will the hub pass its language along.
+   - **Applying a language is not choosing one.** A `?lang=` link or the browser language only *shows* that language; only a click on the activity's own language button may *save* it. Never overwrite a saved choice on page load.
+   - **Every filter needs an empty state.** If a filter can match nothing (e.g. "needs review" with nothing starred), show a short message that says how to fix it. Never fall back silently to other items.
+   - **Cancel pending timers** (auto-advance, delayed feedback) whenever the question, filter, mode or tab changes.
+   - **No silent outside requests.** If a local file fails, explain it and offer Retry; load an outside service only after the visitor chooses it.
+   - **Check contrast in every state** (correct, wrong, selected, disabled), not only on first load: text inside a colored button must change color with it.
 3. **Illustration:** add `site/assets/img/<id>.svg`, 400×289 viewBox, original artwork in the atlas palette from `tokens.css`. Any animation must sit inside the SVG and be switched off by `@media (prefers-reduced-motion: reduce)`. Add the drawing code to `tools/build-illustrations.mjs` if it is generated.
 4. **Catalog entry** in `site/assets/js/catalog.js`: `id`, `type`, `url`, optional `langParam`, `subjects`, `languages`, `illustration`, `fallbackIcon`, and `title` / `description` / `cta` in **he, en and nl**. New subject? Add it to `CQ_SUBJECTS` in `i18n.js` in all three languages. New activity language? Add its own-language name to `CQ_LANGUAGE_NAMES`.
 5. **No-JavaScript fallback:** add a link to the new `url` in the `<noscript>` list in `site/index.html` (the check enforces this).
@@ -80,7 +91,7 @@ Set `CHROME_PATH` if Playwright's own browser is not installed (e.g. `CHROME_PAT
 - Keyboard only: Tab reaches the language switch and every card; focus ring is visible.
 - Reduced motion (DevTools > Rendering > prefers-reduced-motion): illustrations stand still.
 - Each card opens the right place; hosted activities have a working return link; direct activity URLs load on their own.
-- Text contrast stays readable (WCAG AA: 4.5:1 for normal text).
+- Text contrast stays readable (WCAG AA: 4.5:1 for normal text) in every state; `npm test` checks states after answering.
 
 ## Deploying
 
@@ -89,7 +100,9 @@ The site is deployed as static files from `dist/` to the Netlify project **curio
 - With the Netlify CLI: `npm run build && npx netlify deploy --prod --dir dist --site d1a90bec-3bdd-4141-a544-6ae4d0533566`
 - Or with the Netlify MCP tool `deploy-site` using that site id.
 - Access must stay **public, no password, no sign-in**. After deploying, open the live URL in a private window to confirm.
-- If this folder is later connected to GitHub for automatic deploys, set the build command to `npm run build` and publish directory to `dist`; add `.netlify` to `.gitignore` (already there).
+- If this folder is later connected to GitHub for automatic deploys, set the build command to
+  `SKIP_OG_IMAGE=1 npm run build` (no browser needed; the committed share image is reused) and the
+  publish directory to `dist`. `.netlify` is already in `.gitignore`. Run `npm test` locally before pushing.
 
 ## Future: "Warm Workshop" parent mode
 

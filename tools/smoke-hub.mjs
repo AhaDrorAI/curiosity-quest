@@ -22,7 +22,9 @@ for (const [locale, expect] of [['nl-NL', 'nl'], ['he-IL', 'he'], ['fr-FR', 'en'
 const ctx = await browser.newContext({ locale: 'en-US' });
 const page = await ctx.newPage();
 await page.goto(base + '/', { waitUntil: 'networkidle' });
-check('two destination cards', (await page.locator('.destination').count()) === 2);
+const catalogSize = await page.evaluate(() => window.CQ_CATALOG.length);
+check(`one card per catalog entry (${catalogSize})`, catalogSize > 0 && (await page.locator('.destination').count()) === catalogSize);
+const ctaCount = catalogSize;
 await page.click('button[data-lang="he"]');
 check('Hebrew switch sets rtl', (await page.getAttribute('html', 'dir')) === 'rtl');
 await page.reload({ waitUntil: 'networkidle' });
@@ -36,11 +38,11 @@ check('space link says it opens a new tab', /כרטיסייה חדשה/.test(awa
 // Keyboard: Tab reaches the language switch and both cards
 await page.click('button[data-lang="en"]');
 const focusOrder = [];
-for (let i = 0; i < 8; i++) {
+for (let i = 0; i < ctaCount + 6; i++) {
   await page.keyboard.press('Tab');
   focusOrder.push(await page.evaluate(() => document.activeElement.className || document.activeElement.tagName));
 }
-check('keyboard reaches both cards', focusOrder.filter((c) => c.includes('dest-cta')).length === 2, focusOrder.join(', '));
+check('keyboard reaches every card', focusOrder.filter((c) => c.includes('dest-cta')).length === ctaCount, focusOrder.join(', '));
 
 // About panel
 await page.click('.about summary');
@@ -53,7 +55,7 @@ await page.waitForLoadState('networkidle');
 check('activity opens in Dutch from the hub', (await page.getAttribute('html', 'lang')) === 'nl');
 await page.click('#back-to-hub');
 await page.waitForLoadState('networkidle');
-check('return link goes back to the hub', (await page.locator('.destination').count()) === 2);
+check('return link goes back to the hub', (await page.locator('.destination').count()) === catalogSize);
 
 // Missing illustration shows the fallback text
 await page.route('**/assets/img/space.svg', (r) => r.abort());

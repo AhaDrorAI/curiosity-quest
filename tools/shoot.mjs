@@ -2,7 +2,7 @@
 import { chromium } from 'playwright';
 const base = process.argv[2] || 'http://localhost:8080';
 const out = process.argv[3] || 'tools/out';
-const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
+const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
 const shots = [
   ['hub-desktop-en', { width: 1280, height: 1000 }, '/?lang=en', true],
   ['hub-desktop-he', { width: 1280, height: 1000 }, '/?lang=he', true],
