@@ -198,7 +198,7 @@
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-2.5 flex flex-wrap items-center justify-between gap-2">
                 <!-- מצבי עבודה על המפה -->
                 <div class="flex flex-wrap items-center gap-1.5">
-                    <button type="button" id="btn-mode-explore" aria-pressed="true" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-teal-600 text-white shadow-sm transition">
+                    <button type="button" id="btn-mode-explore" aria-pressed="true" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-teal-700 text-white shadow-sm transition">
                         🔍 מצב למידה חופשי
                     </button>
                     <button type="button" id="btn-mode-find" aria-pressed="false" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
@@ -307,7 +307,7 @@
                                 <div id="info-nl-name" class="text-2xl sm:text-3xl font-black text-slate-900 tracking-wide truncate" dir="ltr">Nederland</div>
 
                                 <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
-                                    <button type="button" id="btn-speak-selected" class="inline-flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold px-4 py-1.5 rounded-xl text-xs shadow-sm transition">
+                                    <button type="button" id="btn-speak-selected" class="inline-flex items-center gap-1.5 bg-teal-700 hover:bg-teal-800 text-white font-bold px-4 py-1.5 rounded-xl text-xs shadow-sm transition">
                                         <span>🔊</span> <span id="txt-speak-btn">השמע בהולנדית</span>
                                     </button>
                                     <button type="button" id="btn-center-selected" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition">
@@ -482,7 +482,7 @@
                     <button type="button" id="btn-fc-flip" aria-pressed="false" class="bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold px-5 py-2.5 rounded-xl text-sm transition">
                         🔄 הפוך
                     </button>
-                    <button type="button" id="btn-fc-next" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow transition">
+                    <button type="button" id="btn-fc-next" class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow transition">
                         הבא ⬅️
                     </button>
                 </div>
@@ -497,7 +497,7 @@
                 
                 <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
                     <div class="flex items-center gap-1.5">
-                        <button type="button" id="btn-qmode-mc" aria-pressed="true" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-600 text-white">
+                        <button type="button" id="btn-qmode-mc" aria-pressed="true" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-700 text-white">
                             🔘 שאלות אמריקאיות
                         </button>
                         <button type="button" id="btn-qmode-spell" aria-pressed="false" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">
@@ -543,7 +543,7 @@
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input type="text" id="wq-spell-input" dir="ltr" lang="nl" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="הקלד כאן את השם בהולנדית" placeholder="הקלד כאן את השם בהולנדית..." 
                                class="flex-grow bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 text-base font-bold text-center focus:outline-none focus:border-teal-600">
-                        <button type="button" id="btn-wq-check-spell" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow">
+                        <button type="button" id="btn-wq-check-spell" class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow">
                             בדוק תשובה ✔️
                         </button>
                     </div>
@@ -1954,7 +1954,7 @@
             const btnFind = document.getElementById('btn-mode-find');
             const btnName = document.getElementById('btn-mode-name');
 
-            const activeCls = "px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-teal-600 text-white shadow-sm transition";
+            const activeCls = "px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-teal-700 text-white shadow-sm transition";
             const idleCls = "px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
 
             btnExplore.className = mode === 'explore' ? activeCls : idleCls;
@@ -2098,7 +2098,7 @@
                             <div class="text-[11px] text-amber-800 font-medium">${t.lblPron} ${localPron}</div>
                             <div class="text-[11px] text-slate-500">${localTip}</div>
                         </div>
-                        <button type="button" onclick="speakDutch('${v.nl}')" class="bg-teal-600 hover:bg-teal-700 text-white p-2.5 rounded-xl text-xs font-bold shrink-0">🔊</button>
+                        <button type="button" onclick="speakDutch('${v.nl}')" class="bg-teal-700 hover:bg-teal-800 text-white p-2.5 rounded-xl text-xs font-bold shrink-0">🔊</button>
                     </div>
                 `;
             }).join('');
@@ -2505,7 +2505,7 @@
                 wqMode = 'mc';
                 document.getElementById('btn-qmode-mc').setAttribute('aria-pressed', 'true');
                 document.getElementById('btn-qmode-spell').setAttribute('aria-pressed', 'false');
-                document.getElementById('btn-qmode-mc').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-600 text-white";
+                document.getElementById('btn-qmode-mc').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-700 text-white";
                 document.getElementById('btn-qmode-spell').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200";
                 loadNextWrittenQuestion();
             });
@@ -2513,7 +2513,7 @@
                 wqMode = 'spell';
                 document.getElementById('btn-qmode-spell').setAttribute('aria-pressed', 'true');
                 document.getElementById('btn-qmode-mc').setAttribute('aria-pressed', 'false');
-                document.getElementById('btn-qmode-spell').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-600 text-white";
+                document.getElementById('btn-qmode-spell').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-700 text-white";
                 document.getElementById('btn-qmode-mc').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200";
                 loadNextWrittenQuestion();
             });

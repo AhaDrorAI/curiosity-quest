@@ -4,13 +4,14 @@ import { chromium } from 'playwright';
 
 const base = process.argv[2] || 'http://localhost:8080';
 const out = process.argv[3] || 'tools/out';
-const browser = await chromium.launch({ executablePath: '/usr/bin/google-chrome' });
+const browser = await chromium.launch(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {});
 const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
 const errors = [];
 page.on('pageerror', (e) => errors.push('pageerror: ' + e.message));
 page.on('console', (m) => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 const external = [];
-page.on('request', (r) => { const u = new URL(r.url()); if (!['localhost', '127.0.0.1'].includes(u.hostname)) external.push(u.hostname); });
+const ownHost = new URL(base).hostname;
+page.on('request', (r) => { const u = new URL(r.url()); if (u.protocol.startsWith('http') && u.hostname !== ownHost) external.push(u.hostname); });
 
 const results = [];
 const check = (name, ok, extra = '') => results.push(`${ok ? 'PASS' : 'FAIL'}  ${name}${extra ? '  — ' + extra : ''}`);
