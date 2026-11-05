@@ -1,0 +1,60 @@
+/*
+  Design tokens: every color, size and font the hub uses lives here.
+  hub.css only refers to these variables, so a future theme (for example a warmer
+  "Warm Workshop" mode for parents) can be added by redefining them under a selector
+  such as  :root[data-theme="workshop"] { ... }  without touching the content or layout.
+*/
+:root {
+  /* Color: explorer's atlas */
+  --color-page: #0F2747;            /* chart navy: the page */
+  --color-page-raised: #17365F;     /* panels on the page */
+  --color-grid: rgba(150, 190, 235, 0.09); /* latitude/longitude lines */
+  --color-text-on-page: #F5F8FF;
+  --color-text-on-page-muted: #B7C8E4;
+  --color-card: #F6FAFF;            /* island white: destination cards */
+  --color-card-text: #0E2240;       /* ink */
+  --color-card-text-muted: #45597A;
+  --color-trail: #FFC845;           /* trail yellow */
+  --color-accent: #2EC4B6;          /* lagoon turquoise: actions */
+  --color-accent-hover: #5AD6CB;
+  --color-on-accent: #062A30;
+  --color-chip: #E3ECF7;
+  --color-chip-text: #22385C;
+  --color-focus: #FFC845;
+
+  /* Type: one rounded family for every script (Hebrew, Latin, Cyrillic) */
+  --font-family: "Rubik", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-size-small: 0.875rem;
+  --font-size-body: 1rem;
+  --font-size-lead: 1.1875rem;
+  --font-size-card-title: 1.5rem;
+  --font-size-headline: clamp(2.25rem, 1.4rem + 4.2vw, 4.25rem);
+  --font-weight-body: 400;
+  --font-weight-strong: 600;
+  --font-weight-title: 700;
+  --font-weight-headline: 800;
+  --line-height-body: 1.55;
+  --line-height-tight: 1.08;
+
+  /* Space and shape */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --page-max: 68rem;
+  --gutter: clamp(1rem, 4vw, 2rem);
+  --radius-card: 28px;      /* big, friendly destination cards */
+  --radius-window: 18px;    /* the illustration window inside a card */
+  --radius-control: 14px;   /* buttons */
+  --radius-pill: 999px;     /* chips and the language switch */
+  --trail-dot: 6px;         /* size of one dot in the dotted trail */
+  --trail-gap: 15px;        /* distance between trail dots */
+  --shadow-card: 0 18px 40px -18px rgba(3, 12, 30, 0.75);
+
+  /* Motion */
+  --motion-quick: 160ms;
+}

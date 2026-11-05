@@ -1,0 +1,2647 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>לומדת טופוגרפיה: מערב אירופה - Cito 100 TOPO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Leaflet CSS & JS for accurate real-world European map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Rubik', sans-serif;
+            background-color: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        /* מניעת קפיצות בסימוני המפה של Leaflet - גודל קבוע ומוחלט של 28x28 פיקסלים */
+        .topo-marker-wrapper {
+            background: transparent !important;
+            border: none !important;
+        }
+        .topo-pin {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Rubik', sans-serif;
+            font-weight: 800;
+            font-size: 12px;
+            line-height: 1;
+            color: #ffffff;
+            border: 2px solid #ffffff;
+            box-shadow: 0 2px 5px rgba(15, 23, 42, 0.45);
+            cursor: pointer;
+            user-select: none;
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+            position: relative;
+        }
+        .topo-pin:hover {
+            box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.85), 0 3px 8px rgba(0,0,0,0.4);
+            z-index: 1000 !important;
+        }
+        .topo-pin.selected-pin {
+            box-shadow: 0 0 0 4px #f59e0b, 0 0 14px rgba(245, 158, 11, 0.95) !important;
+            z-index: 1100 !important;
+        }
+        .topo-pin.correct-pin {
+            background-color: #10b981 !important;
+            border-color: #ecfdf5 !important;
+            box-shadow: 0 0 0 4px #059669 !important;
+        }
+        .topo-pin.wrong-pin {
+            background-color: #ef4444 !important;
+            border-color: #fef2f2 !important;
+            box-shadow: 0 0 0 4px #dc2626 !important;
+        }
+
+        /* תווית שם מרחפת מעל הסימון מבלי לשנות את גודל האייקון עצמו */
+        .topo-pin-label {
+            position: absolute;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(15, 23, 42, 0.92);
+            color: #ffffff;
+            font-size: 10.5px;
+            font-weight: 700;
+            padding: 1px 6px;
+            border-radius: 4px;
+            white-space: nowrap;
+            pointer-events: none;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            dir: ltr;
+        }
+
+        /* צורות הסימונים לפי קטגוריה */
+        .pin-Landen { background-color: #d97706; border-radius: 6px; }
+        .pin-Hoofdsteden { background-color: #e11d48; border-radius: 9999px; }
+        .pin-Steden { background-color: #7c3aed; border-radius: 9999px; }
+        .pin-Wateren { background-color: #0284c7; border-radius: 9999px; font-style: italic; }
+        .pin-Gebieden { background-color: #059669; border-radius: 6px; }
+        .pin-Gebergten { background-color: #78350f; border-radius: 6px; }
+        .pin-Plus { background-color: #4f46e5; border-radius: 6px; font-size: 10.5px; }
+
+        /* אנימציית כרטיסיות בגובה קבוע */
+        .perspective-1000 { perspective: 1000px; }
+        .transform-style-3d { transform-style: preserve-3d; transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1); }
+        .backface-hidden { backface-visibility: hidden; -webkit-backface-visibility: hidden; }
+        .rotate-y-180 { transform: rotateY(180deg); }
+
+        /* התאמת בקרי Leaflet */
+        .leaflet-container {
+            font-family: 'Rubik', sans-serif;
+            background-color: #cde6f5;
+        }
+
+        /* סרגלי גלילה עדינים */
+        ::-webkit-scrollbar { width: 7px; height: 7px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; }
+        ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 4px; }
+    </style>
+</head>
+<body class="text-slate-800 min-h-screen flex flex-col">
+
+    <!-- סרגל עליון קבוע ויציב -->
+    <header class="bg-slate-900 text-white shadow-md sticky top-0 z-50 border-b border-slate-700">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5 min-w-0">
+                <div class="bg-teal-500/20 border border-teal-400/40 w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center text-lg sm:text-xl shrink-0">🌍</div>
+                <div class="truncate">
+                    <h1 class="text-sm sm:text-lg font-extrabold tracking-tight truncate">Topo West-Europa • Cito 100</h1>
+                    <p id="hdr-subtitle" class="text-[11px] text-slate-400 hidden md:block truncate">לומדה מדויקת למבחן בגיאוגרפיה והולנדית (עמוד 48 - כל 48 הפריטים)</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+                <!-- בורר שפות (עברית, רוסית, אנגלית, הולנדית) -->
+                <div class="flex items-center bg-slate-800 border border-slate-700 rounded-xl p-0.5 text-xs font-bold">
+                    <button type="button" onclick="setAppLanguage('he')" id="lang-btn-he" class="lang-switch-btn px-2 py-1 rounded-lg bg-amber-500 text-slate-950 transition" title="עברית">🇮🇱 עב</button>
+                    <button type="button" onclick="setAppLanguage('ru')" id="lang-btn-ru" class="lang-switch-btn px-2 py-1 rounded-lg text-slate-300 hover:text-white transition" title="Русский">🇷🇺 RU</button>
+                    <button type="button" onclick="setAppLanguage('en')" id="lang-btn-en" class="lang-switch-btn px-2 py-1 rounded-lg text-slate-300 hover:text-white transition" title="English">🇬🇧 EN</button>
+                    <button type="button" onclick="setAppLanguage('nl')" id="lang-btn-nl" class="lang-switch-btn px-2 py-1 rounded-lg text-slate-300 hover:text-white transition" title="Nederlands">🇳🇱 NL</button>
+                </div>
+
+                <!-- כפתורי ניווט ראשיים בגודל קבוע -->
+                <nav class="flex items-center gap-1 bg-slate-800 p-1 rounded-xl shrink-0">
+                    <button type="button" data-tab="map" class="main-tab-btn bg-teal-500 text-slate-950 font-bold px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1">
+                        <span>🗺️</span> <span id="nav-tab-map">המפה ואימון</span>
+                    </button>
+                    <button type="button" data-tab="vocab" class="main-tab-btn text-slate-300 hover:text-white hover:bg-slate-700 font-medium px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1">
+                        <span>🗣️</span> <span id="nav-tab-vocab">הולנדית וטבלאות</span>
+                    </button>
+                    <button type="button" data-tab="flashcards" class="main-tab-btn text-slate-300 hover:text-white hover:bg-slate-700 font-medium px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1">
+                        <span>🃏</span> <span id="nav-tab-fc">כרטיסיות</span>
+                    </button>
+                    <button type="button" data-tab="quiz" class="main-tab-btn text-slate-300 hover:text-white hover:bg-slate-700 font-medium px-2.5 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1">
+                        <span>✍️</span> <span id="nav-tab-quiz">מבחן וכתיב</span>
+                    </button>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- תוכן ראשי -->
+    <main class="max-w-7xl w-full mx-auto px-3 sm:px-6 py-4 flex-grow">
+
+        <!-- ==========================================================
+             לשונית 1: מפה גיאוגרפית מדויקת (Leaflet) + אימון מפה יציב
+             ========================================================== -->
+        <section id="tab-panel-map" class="space-y-3">
+
+            <!-- סרגל עליון של המפה: בחירת מצב + כפתורי זום מהיר (ללא תזוזה) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-2.5 flex flex-wrap items-center justify-between gap-2">
+                <!-- מצבי עבודה על המפה -->
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button type="button" id="btn-mode-explore" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-teal-600 text-white shadow-sm transition">
+                        🔍 מצב למידה חופשי
+                    </button>
+                    <button type="button" id="btn-mode-find" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                        🎯 בחן אותי: "מצא על המפה"
+                    </button>
+                    <button type="button" id="btn-mode-name" class="px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition">
+                        ❓ בחן אותי: "זהה את הסימון"
+                    </button>
+                </div>
+
+                <!-- כפתורי תצוגה מהירה (כולל הגדלת בלגיה כמו בדף המקורי!) -->
+                <div class="flex flex-wrap items-center gap-1.5">
+                    <button type="button" id="btn-zoom-all" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                        🌍 כל מערב אירופה
+                    </button>
+                    <button type="button" id="btn-zoom-belgium" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 transition">
+                        🔍 הגדלת בלגיה (K, L, l, g, 3, 9)
+                    </button>
+                    <button type="button" id="btn-zoom-uk" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+                        🇬🇧 בריטניה ואירלנד
+                    </button>
+                    <button type="button" id="btn-open-original" class="px-3 py-1.5 rounded-lg text-xs font-extrabold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition">
+                        🖼️ העלה תמונת מבחן / קישור Drive
+                    </button>
+                </div>
+            </div>
+
+            <!-- פריסת עמודות קבועה: מפה מימין/מרכז (8 עמודות) + פאנל קבוע משמאל (4 עמודות) -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+
+                <!-- אזור המפה המדויקת (8 עמודות) -->
+                <div class="lg:col-span-8 bg-white rounded-2xl shadow-md border border-slate-200 overflow-hidden flex flex-col">
+                    
+                    <!-- סרגל סינון ושכבות מעל המפה -->
+                    <div class="bg-slate-800 text-white px-3 py-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span id="lbl-filter-cat" class="font-bold text-teal-300">סינון קטגוריה:</span>
+                            <select id="map-filter-select" class="bg-slate-700 text-white border border-slate-600 rounded-lg px-2.5 py-1 text-xs font-bold focus:outline-none">
+                                <option value="all">הצג הכל (48 סימונים)</option>
+                                <option value="hard">⭐ דורש חזרה (מסומן)</option>
+                                <option value="Landen">מדינות - Landen (A-G)</option>
+                                <option value="Hoofdsteden">ערי בירה - Hoofdsteden (1-6)</option>
+                                <option value="Steden">ערים - Steden (7-15)</option>
+                                <option value="Wateren">ימים ונהרות - Wateren (a-k)</option>
+                                <option value="Gebieden">אזורים - Gebieden (H-L)</option>
+                                <option value="Gebergten">רכסי הרים - Gebergten (l-n)</option>
+                                <option value="Plus TOPO">בונוס - Plus TOPO</option>
+                            </select>
+
+                            <select id="map-tile-select" class="bg-slate-700 text-white border border-slate-600 rounded-lg px-2.5 py-1 text-xs font-medium focus:outline-none">
+                                <option value="vector_clean">מפה אילמת נקייה (ללא API - מובנית)</option>
+                                <option value="esri_gray">מפה אילמת גיאוגרפית (Esri Canvas)</option>
+                                <option value="esri_physical">מפה פיזית - הרים ונהרות (Esri)</option>
+                                <option value="osm">מפה עם שמות וגבולות (OpenStreetMap)</option>
+                                <option value="custom_image">🖼️ תמונת דף המבחן המקורי (העלאה / Drive)</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <label id="lbl-drag-pins" class="hidden items-center gap-1 cursor-pointer select-none bg-amber-600/90 px-2 py-1 rounded-lg text-white font-bold">
+                                <input type="checkbox" id="chk-drag-pins" class="rounded w-3.5 h-3.5">
+                                <span id="txt-drag-pins">אפשר הזזת סימונים להתאמה</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none bg-slate-700/80 px-2.5 py-1 rounded-lg hover:bg-slate-700">
+                                <input type="checkbox" id="chk-show-labels" class="rounded text-teal-500 w-3.5 h-3.5">
+                                <span id="txt-show-labels">הצג תוויות הולנדית על המפה</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- מיכל המפה בגובה קבוע ויציב (ללא קפיצות!) -->
+                    <div class="relative w-full h-[540px] sm:h-[600px] bg-[#cde6f5] overflow-hidden">
+                        
+                        <!-- כפתורי זום מותאמים אישית (מונע בעיות ב-Google Sites) -->
+                        <div class="absolute top-4 left-4 z-[1000] flex flex-col shadow-md rounded-lg overflow-hidden border border-slate-300">
+                            <button type="button" id="custom-zoom-in" class="bg-white hover:bg-slate-100 text-slate-800 font-bold w-8 h-8 flex items-center justify-center text-xl border-b border-slate-200 leading-none pb-1" title="Zoom In">+</button>
+                            <button type="button" id="custom-zoom-out" class="bg-white hover:bg-slate-100 text-slate-800 font-bold w-8 h-8 flex items-center justify-center text-2xl leading-none pb-1" title="Zoom Out">−</button>
+                        </div>
+
+                        <!-- מפת Leaflet הגיאוגרפית -->
+                        <div id="leaflet-map" class="w-full h-full z-10"></div>
+
+                        <!-- מצב תמונת המבחן המקורית (Custom Worksheet Image Mode) -->
+                        <div id="worksheet-image-mode" class="hidden absolute inset-0 z-20 bg-slate-200 flex items-center justify-center overflow-hidden select-none">
+                            <div id="worksheet-aspect-box" class="relative h-full aspect-[768/1024] max-w-full bg-white shadow-inner overflow-hidden">
+                                <img id="worksheet-img-el" src="" alt="מפת המבחן" class="w-full h-full object-fill pointer-events-none" />
+                                <div id="worksheet-pins-layer" class="absolute inset-0"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- מקרא צבעים תחתון קבוע -->
+                    <div class="bg-slate-50 px-3 py-2 border-t border-slate-200 flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <div id="map-legend-items" class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-600 inline-block"></span> A-G מדינות</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-rose-600 inline-block"></span> 1-6 ערי בירה</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-purple-600 inline-block"></span> 7-15 ערים</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-sky-600 inline-block"></span> a-k מים ונהרות</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-emerald-600 inline-block"></span> H-L אזורים</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-900 inline-block"></span> l-n הרים</span>
+                            <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-indigo-600 inline-block"></span> Plus TOPO</span>
+                        </div>
+                        <span id="map-legend-hint" class="text-slate-400">ניתן לגרור את המפה ולהתקרב עם כפתורי ה-+/-</span>
+                    </div>
+                </div>
+
+                <!-- פאנל צדדי בגובה קבוע (4 עמודות) - אפס קפיצות! -->
+                <div class="lg:col-span-4 flex flex-col gap-3 h-[630px]">
+
+                    <!-- תיבה עליונה: כרטיס פרטים / חידון מפה (גובה קבוע 310px) -->
+                    <div class="bg-white rounded-2xl shadow-md border border-slate-200 p-4 h-[325px] flex flex-col justify-between shrink-0 overflow-hidden">
+
+                        <!-- תצוגת מצב למידה חופשי -->
+                        <div id="side-explore-view" class="h-full flex flex-col justify-between">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                                <span id="info-cat-badge" class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-teal-100 text-teal-800">מדינה (Landen)</span>
+                                <span id="info-code-badge" class="w-8 h-8 rounded-lg bg-slate-800 text-white font-black text-sm flex items-center justify-center">C</span>
+                            </div>
+
+                            <div class="my-auto text-center space-y-2 py-1">
+                                <div id="lbl-dutch-name" class="text-xs text-slate-400 font-semibold">שם בהולנדית (Nederlands):</div>
+                                <div id="info-nl-name" class="text-2xl sm:text-3xl font-black text-slate-900 tracking-wide truncate" dir="ltr">Nederland</div>
+
+                                <div class="flex items-center justify-center gap-2 pt-1">
+                                    <button type="button" id="btn-speak-selected" class="inline-flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold px-4 py-1.5 rounded-xl text-xs shadow-sm transition">
+                                        <span>🔊</span> <span id="txt-speak-btn">השמע בהולנדית</span>
+                                    </button>
+                                    <button type="button" id="btn-center-selected" class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-xl text-xs transition">
+                                        <span>🎯</span> <span id="txt-center-btn">מרכז במפה</span>
+                                    </button>
+                                    <button type="button" id="btn-toggle-hard" class="inline-flex items-center gap-1 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-3 py-1.5 rounded-xl text-xs transition">
+                                        <span id="icon-hard">⭐</span> <span id="txt-hard-btn">סמן לחזרה</span>
+                                    </button>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 pt-2">
+                                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-2">
+                                        <div id="lbl-how-to-pron" class="text-[11px] text-amber-700 font-semibold">איך מבטאים?</div>
+                                        <div id="info-pron" class="text-sm font-extrabold text-amber-950 truncate">נֵדֶרְלַנְד</div>
+                                    </div>
+                                    <div class="bg-teal-50 border border-teal-200 rounded-xl p-2">
+                                        <div id="lbl-in-local-lang" class="text-[11px] text-teal-700 font-semibold">בעברית:</div>
+                                        <div id="info-he-name" class="text-sm font-extrabold text-teal-950 truncate">הולנד</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div id="info-desc" class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 h-14 overflow-y-auto leading-relaxed">
+                                המדינה שבה אנחנו גרים ולומדים! שוכנת לחוף הים הצפוני (Noordzee).
+                            </div>
+                        </div>
+
+                        <!-- תצוגת מצב בחן אותי על המפה (Find / Name) -->
+                        <div id="side-quiz-view" class="hidden h-full flex flex-col justify-between">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                                <span id="map-quiz-mode-title" class="text-xs font-extrabold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-lg">🎯 מצא על המפה</span>
+                                <div class="text-xs font-bold bg-slate-100 px-2.5 py-1 rounded-lg text-slate-700">
+                                    <span id="lbl-map-score">ניקוד:</span> <span id="map-quiz-score" class="text-teal-700 font-black">0</span> / <span id="map-quiz-total">0</span>
+                                </div>
+                            </div>
+
+                            <div id="info-desc" class="text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100 h-14 overflow-y-auto leading-relaxed">
+                                המדינה שבה אנחנו גרים ולומדים! שוכנת לחוף הים הצפוני (Noordzee).
+                            </div>
+                        </div>
+
+                        <!-- תצוגת מצב בחן אותי על המפה (Find / Name) -->
+                        <div id="side-quiz-view" class="hidden h-full flex flex-col justify-between">
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                                <span id="map-quiz-mode-title" class="text-xs font-extrabold text-amber-800 bg-amber-100 px-2.5 py-1 rounded-lg">🎯 מצא על המפה</span>
+                                <div class="text-xs font-bold bg-slate-100 px-2.5 py-1 rounded-lg text-slate-700">
+                                    ניקוד: <span id="map-quiz-score" class="text-teal-700 font-black">0</span> / <span id="map-quiz-total">0</span>
+                                </div>
+                            </div>
+
+                            <div class="my-auto text-center space-y-2">
+                                <div id="map-quiz-prompt-label" class="text-xs text-slate-500 font-semibold">לחץ על הסימון הנכון במפה עבור:</div>
+                                <div id="map-quiz-target-main" class="text-2xl font-black text-slate-900" dir="ltr">Frankrijk</div>
+                                <div id="map-quiz-target-sub" class="text-xs font-bold text-amber-800">פְרַנְקְרַייק • צרפת</div>
+
+                                <div class="pt-1">
+                                    <button type="button" id="btn-map-quiz-speak" class="inline-flex items-center gap-1 bg-teal-100 hover:bg-teal-200 text-teal-900 font-bold px-3 py-1 rounded-lg text-xs transition">
+                                        🔊 השמע הגייה בהולנדית
+                                    </button>
+                                </div>
+
+                                <!-- אפשרויות בחירה כשנמצאים במצב "זהה את הסימון" -->
+                                <div id="map-quiz-choices" class="hidden grid grid-cols-2 gap-1.5 pt-1"></div>
+                            </div>
+
+                            <!-- שורת משוב קבועה בתחתית הכרטיס -->
+                            <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-100">
+                                <div id="map-quiz-feedback" class="text-xs font-bold text-slate-500 truncate">בחר נקודה במפה...</div>
+                                <button type="button" id="btn-map-quiz-next" class="bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold px-3 py-1.5 rounded-lg shrink-0 transition">
+                                    הבא ⏭️
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- תיבה תחתונה: רשימה מהירה של כל 48 הפריטים ללחיצה ומיקוד מהיר (גובה קבוע) -->
+                    <div class="bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col flex-grow overflow-hidden">
+                        <div class="p-2.5 border-b border-slate-100 flex items-center justify-between gap-2 bg-slate-50">
+                            <span id="lbl-sidebar-list-title" class="text-xs font-extrabold text-slate-700">📋 רשימת הסימונים (48)</span>
+                            <input type="text" id="sidebar-quick-search" placeholder="סינון מהיר..." class="bg-white border border-slate-300 rounded-lg px-2.5 py-1 text-xs w-36 focus:outline-none focus:border-teal-500">
+                        </div>
+                        <div id="sidebar-items-list" class="overflow-y-auto p-2 space-y-1 flex-grow">
+                            <!-- מתמלא ב-JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================================
+             לשונית 2: עזרה בשפה ההולנדית + טבלאות מלאות של כל ה-48
+             ========================================================== -->
+        <section id="tab-panel-vocab" class="hidden space-y-6">
+
+            <!-- בלוק משפטים והוראות מתוך דף המבחן המקורי -->
+            <div class="bg-gradient-to-l from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-5 sm:p-6 shadow-md">
+                <h2 id="vocab-sentences-heading" class="text-lg sm:text-xl font-extrabold text-teal-300 mb-3 flex items-center gap-2">
+                    <span>📌</span> משפטים והוראות מתוך דף המבחן (לחץ על הרמקול כדי לשמוע בהולנדית)
+                </h2>
+                <div id="vocab-sentences-grid" class="grid grid-cols-1 md:grid-cols-3 gap-3"></div>
+            </div>
+
+            <!-- מילון מונחי הבסיס של הקטגוריות -->
+            <div class="bg-white rounded-3xl shadow-sm p-5 border border-slate-200">
+                <h3 id="vocab-dict-heading" class="text-lg font-extrabold text-slate-800 mb-3">🗣️ מילון מונחי המפה בהולנדית (Woordenlijst)</h3>
+                <div id="vocab-cards-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+            </div>
+
+            <!-- טבלאות מלאות של כל 48 הפריטים -->
+            <div class="bg-white rounded-3xl shadow-sm p-5 border border-slate-200 space-y-5">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <h3 id="vocab-tables-heading" class="text-lg font-extrabold text-slate-800">📚 טבלת כל 48 המקומות למבחן לפי קטגוריות</h3>
+                    <input type="text" id="full-table-search" placeholder="חפש שם בהולנדית, עברית או קוד..." class="w-full sm:w-72 bg-slate-100 border border-slate-300 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-teal-600">
+                </div>
+                <div id="full-tables-container" class="space-y-6"></div>
+            </div>
+        </section>
+
+        <!-- ==========================================================
+             לשונית 3: כרטיסיות זיכרון מתהפכות (Flashcards) ללא קפיצות
+             ========================================================== -->
+        <section id="tab-panel-flashcards" class="hidden max-w-2xl mx-auto py-2">
+            <div class="bg-white rounded-3xl shadow-md border border-slate-200 p-6 text-center space-y-5">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <h2 id="fc-main-heading" class="text-xl font-extrabold text-slate-800">🃏 כרטיסיות זיכרון (Flashcards)</h2>
+                    <div class="flex items-center gap-2">
+                        <select id="fc-cat-select" class="bg-slate-100 border border-slate-300 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700">
+                            <option value="all">כל 48 הכרטיסיות</option>
+                            <option value="hard">⭐ דורש חזרה (מסומן)</option>
+                            <option value="Landen">מדינות - Landen</option>
+                            <option value="Hoofdsteden">ערי בירה - Hoofdsteden</option>
+                            <option value="Steden">ערים - Steden</option>
+                            <option value="Wateren">ימים ונהרות - Wateren</option>
+                            <option value="Gebieden">אזורים - Gebieden</option>
+                            <option value="Gebergten">רכסי הרים - Gebergten</option>
+                            <option value="Plus TOPO">Plus TOPO</option>
+                        </select>
+                        <button type="button" id="btn-fc-shuffle" class="bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-3 py-1.5 rounded-xl text-xs transition">
+                            🔀 ערבב
+                        </button>
+                    </div>
+                </div>
+
+                <!-- כרטיסייה בגובה נעול של 280px למניעת כל קפיצה -->
+                <div class="perspective-1000 w-full h-[280px]">
+                    <div id="fc-card-inner" class="w-full h-full relative transform-style-3d cursor-pointer rounded-3xl shadow-lg">
+                        <!-- צד קדמי -->
+                        <div class="backface-hidden absolute inset-0 bg-gradient-to-br from-teal-600 to-cyan-800 text-white rounded-3xl p-6 flex flex-col justify-between border-2 border-teal-400">
+                            <div class="flex justify-between items-center text-xs font-bold text-teal-100">
+                                <span id="fc-front-cat">מדינה</span>
+                                <span id="fc-counter">1 / 48</span>
+                            </div>
+                            <div class="my-auto space-y-2">
+                                <div id="fc-front-prompt" class="text-xs text-teal-100">סימון במפה ושם בעברית:</div>
+                                <div id="fc-front-code" class="text-4xl font-black bg-white/20 px-5 py-1.5 rounded-2xl inline-block">A</div>
+                                <div id="fc-front-he" class="text-2xl font-extrabold">אירלנד</div>
+                            </div>
+                            <div id="fc-front-hint" class="text-xs text-teal-200">👆 לחץ על הכרטיסייה כדי להפוך ולשמוע בהולנדית</div>
+                        </div>
+
+                        <!-- צד אחורי -->
+                        <div class="backface-hidden rotate-y-180 absolute inset-0 bg-slate-900 text-white rounded-3xl p-6 flex flex-col justify-between border-2 border-amber-400">
+                            <div class="flex justify-between items-center text-xs font-bold text-slate-400">
+                                <span id="fc-back-label">השם בהולנדית (Nederlands)</span>
+                                <button type="button" id="btn-fc-speak" class="bg-teal-500 hover:bg-teal-400 text-slate-950 px-3 py-1 rounded-lg text-xs font-bold">
+                                    🔊 השמע שוב
+                                </button>
+                            </div>
+                            <div class="my-auto space-y-2">
+                                <div id="fc-back-nl" class="text-3xl sm:text-4xl font-black text-amber-300" dir="ltr">Ierland</div>
+                                <div id="fc-back-pron" class="text-base font-bold text-teal-300">הגייה: אִירְלַנְד</div>
+                                <div id="fc-back-tip" class="text-xs text-slate-300 max-w-md mx-auto pt-1"></div>
+                            </div>
+                            <div id="fc-back-hint" class="text-xs text-slate-400">לחץ להיפוך חזרה</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- כפתורי ניווט בכרטיסיות -->
+                <div class="flex items-center justify-center gap-4 pt-1">
+                    <button type="button" id="btn-fc-prev" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-6 py-2.5 rounded-xl text-sm transition">
+                        ➡️ הקודם
+                    </button>
+                    <button type="button" id="btn-fc-next" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-8 py-2.5 rounded-xl text-sm shadow transition">
+                        הבא ⬅️
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==========================================================
+             לשונית 4: מבחן אמריקאי + תרגול כתיב בהולנדית (ללא קפיצות)
+             ========================================================== -->
+        <section id="tab-panel-quiz" class="hidden max-w-2xl mx-auto py-2">
+            <div class="bg-white rounded-3xl shadow-md border border-slate-200 p-6 space-y-4">
+                
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div class="flex items-center gap-1.5">
+                        <button type="button" id="btn-qmode-mc" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-600 text-white">
+                            🔘 שאלות אמריקאיות
+                        </button>
+                        <button type="button" id="btn-qmode-spell" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200">
+                            ✍️ כתיב בהולנדית
+                        </button>
+                    </div>
+
+                    <div class="flex items-center gap-2">
+                        <select id="quiz-cat-filter" class="bg-slate-100 border border-slate-300 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700">
+                            <option value="all">כל הקטגוריות (48)</option>
+                            <option value="hard">⭐ דורש חזרה (מסומן)</option>
+                            <option value="Landen">מדינות (Landen)</option>
+                            <option value="Hoofdsteden">ערי בירה (Hoofdsteden)</option>
+                            <option value="Steden">ערים (Steden)</option>
+                            <option value="Wateren">ימים ונהרות (Wateren)</option>
+                            <option value="Gebieden">אזורים (Gebieden)</option>
+                            <option value="Gebergten">רכסי הרים (Gebergten)</option>
+                            <option value="Plus TOPO">Plus TOPO</option>
+                        </select>
+                        <div class="bg-teal-50 border border-teal-200 px-3 py-1 rounded-xl text-xs font-extrabold text-teal-900">
+                            <span id="lbl-wq-score">ניקוד:</span> <span id="written-quiz-score">0 / 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- תיבת השאלה בגובה קבוע -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 min-h-[135px] flex flex-col justify-center">
+                    <div id="wq-badge" class="text-xs font-bold text-indigo-700">קטגוריה • סימון</div>
+                    <h3 id="wq-title" class="text-lg sm:text-xl font-black text-slate-900">איך אומרים בהולנדית?</h3>
+                    <div id="wq-subtitle" class="text-xs text-slate-500"></div>
+                    <div class="pt-1">
+                        <button type="button" id="btn-wq-speak" class="inline-flex items-center gap-1 bg-teal-100 hover:bg-teal-200 text-teal-900 font-bold px-3 py-1 rounded-lg text-xs">
+                            🔊 רמז קולי בהולנדית
+                        </button>
+                    </div>
+                </div>
+
+                <!-- אזור תשובות אמריקאיות -->
+                <div id="wq-mc-area" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 min-h-[140px]"></div>
+
+                <!-- אזור כתיב בהולנדית + מקשים מיוחדים -->
+                <div id="wq-spell-area" class="hidden space-y-3 min-h-[140px]">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="wq-spell-input" dir="ltr" placeholder="הקלד כאן את השם בהולנדית..." 
+                               class="flex-grow bg-white border-2 border-slate-300 rounded-xl px-4 py-2.5 text-base font-bold text-center focus:outline-none focus:border-teal-600">
+                        <button type="button" id="btn-wq-check-spell" class="bg-teal-600 hover:bg-teal-700 text-white font-bold px-5 py-2.5 rounded-xl text-sm shadow">
+                            בדוק תשובה ✔️
+                        </button>
+                    </div>
+                    <!-- כפתורי עזר לאותיות מיוחדות בהולנדית -->
+                    <div class="flex flex-wrap items-center justify-center gap-1.5 text-xs" dir="ltr">
+                        <span class="text-slate-400 mr-1" dir="rtl">אותיות מיוחדות:</span>
+                        <button type="button" onclick="insertSpecialChar('ë')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2.5 py-1 rounded-lg">ë</button>
+                        <button type="button" onclick="insertSpecialChar('ü')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2.5 py-1 rounded-lg">ü</button>
+                        <button type="button" onclick="insertSpecialChar('ô')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2.5 py-1 rounded-lg">ô</button>
+                        <button type="button" onclick="insertSpecialChar('-')" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold px-2.5 py-1 rounded-lg">-</button>
+                    </div>
+                </div>
+
+                <!-- משוב וכפתור מעבר לשאלה הבאה -->
+                <div class="flex items-center justify-between gap-3 pt-3 border-t border-slate-100">
+                    <div id="wq-feedback-box" class="text-xs sm:text-sm font-bold text-slate-500 truncate">בחר או הקלד את התשובה בהולנדית...</div>
+                    <button type="button" id="btn-wq-next" class="bg-slate-800 hover:bg-slate-900 text-white font-bold px-5 py-2 rounded-xl text-xs sm:text-sm shrink-0 transition">
+                        שאלה הבאה ⏭️
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- חלונית מודאלית להעלאת תמונת המבחן המקורית מהמחשב או מ-Google Drive -->
+    <div id="original-sheet-modal" class="hidden fixed inset-0 bg-slate-950/75 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl max-w-xl w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                <h3 class="text-lg font-extrabold text-slate-900">🖼️ שימוש בתמונת דף המבחן המקורי</h3>
+                <button type="button" id="btn-close-modal" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1 rounded-lg text-sm">✕ סגור</button>
+            </div>
+
+            <div class="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+                <!-- אפשרות 1: העלאה ישירה מהמחשב (הכי מומלץ ואמין!) -->
+                <div class="bg-teal-50 border border-teal-200 rounded-2xl p-4 space-y-2">
+                    <div class="font-extrabold text-teal-950 text-sm">אפשרות 1 (מומלצת): בחר את תמונת המפה מהמחשב שלך</div>
+                    <p class="text-xs text-teal-800">שמור את תמונת המפה על המחשב ובחר אותה כאן. היא תישמר אוטומטית בדפדפן וכל 48 הסימונים הלחיצים יופיעו עליה!</p>
+                    <input type="file" id="input-upload-map-file" accept="image/*" class="block w-full text-xs text-slate-700 file:ml-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-teal-600 file:text-white hover:file:bg-teal-700 cursor-pointer" />
+                </div>
+
+                <!-- אפשרות 2: קישור מ-Google Drive או כתובת תמונה -->
+                <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2">
+                    <div class="font-extrabold text-slate-900 text-sm">אפשרות 2: הדבק קישור ציבורי מ-Google Drive או מהאינטרנט</div>
+                    <p class="text-xs text-slate-500">וודא שהקובץ ב-Google Drive מוגדר כ-"כל מי שיש לו קישור יכול לצפות" (Anyone with the link):</p>
+                    <div class="flex gap-2">
+                        <input type="text" id="input-drive-url" dir="ltr" value="https://drive.google.com/file/d/10ptLF19a47faNV651q3HNMY0-qi2aZ87/view?usp=drive_web" placeholder="https://drive.google.com/file/d/..." class="flex-grow bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-mono focus:outline-none focus:border-indigo-600" />
+                        <button type="button" id="btn-apply-drive-url" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-xl text-xs shrink-0">טען תמונה</button>
+                    </div>
+                </div>
+
+                <div id="modal-upload-status" class="text-xs font-bold text-center text-emerald-700 h-5"></div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <button type="button" id="btn-reset-custom-positions" class="text-xs text-slate-500 hover:text-rose-600 font-semibold">איפוס מיקומי סימונים לברירת מחדל</button>
+                    <a href="https://drive.google.com/file/d/10ptLF19a47faNV651q3HNMY0-qi2aZ87/view?usp=drive_web" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-indigo-600 hover:underline">🔗 פתח את הקובץ המקורי ב-Drive בחלון חדש</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================
+         JavaScript: נתונים מדויקים, מפת Leaflet, ריבוי שפות (HE/RU/EN/NL) ואינטראקציה יציבה
+         ========================================================== -->
+    <script>
+        // שפת הממשק הנוכחית ('he' | 'ru' | 'en' | 'nl')
+        let currentLang = localStorage.getItem('topo_app_lang') || 'he';
+
+        // מילון תרגومي ממשק מלא ל-4 השפות
+        const uiTranslations = {
+            he: {
+                dir: 'rtl',
+                hdrSub: 'לומדה מדויקת למבחן בגיאוגרפיה והולנדית (עמוד 48 - כל 48 הפריטים)',
+                navMap: 'המפה ואימון',
+                navVocab: 'הולנדית וטבלאות',
+                navFc: 'כרטיסיות',
+                navQuiz: 'מבחן וכתיב',
+                modeExplore: '🔍 מצב למידה חופשי',
+                modeFind: '🎯 בחן אותי: "מצא על המפה"',
+                modeName: '❓ בחן אותי: "זהה את הסימון"',
+                zoomAll: '🌍 כל מערב אירופה',
+                zoomBelgium: '🔍 הגדלת בלגיה (K, L, l, g, 3, 9)',
+                zoomUk: '🇬🇧 בריטניה ואירלנד',
+                openOriginal: '🖼️ העלה תמונת מבחן / קישור Drive',
+                filterCatLabel: 'סינון קטגוריה:',
+                filterAll: 'הצג הכל (48 סימונים)',
+                filterLanden: 'מדינות - Landen (A-G)',
+                filterHoofdsteden: 'ערי בירה - Hoofdsteden (1-6)',
+                filterSteden: 'ערים - Steden (7-15)',
+                filterWateren: 'ימים ונהרות - Wateren (a-k)',
+                filterGebieden: 'אזורים - Gebieden (H-L)',
+                filterGebergten: 'רכסי הרים - Gebergten (l-n)',
+                filterPlus: 'בונוס - Plus TOPO',
+                filterHard: '⭐ דורש חזרה (מסומן)',
+                btnMarkHard: 'סמן לחזרה',
+                btnUnmarkHard: 'הוסר מחזרה (✅)',
+                tileVector: 'מפה אילמת נקייה (ללא API - מובנית)',
+                tileGray: 'מפה אילמת גיאוגרפית (Esri Canvas)',
+                tilePhysical: 'מפה פיזית - הרים ונהרות (Esri)',
+                tileOsm: 'מפה עם שמות וגבולות (OpenStreetMap)',
+                tileCustom: '🖼️ תמונת דף המבחן המקורי (העלאה / Drive)',
+                dragPins: 'אפשר הזזת סימונים להתאמה',
+                showLabels: 'הצג תוויות הולנדית על המפה',
+                legLanden: 'A-G מדינות',
+                legHoofdsteden: '1-6 ערי בירה',
+                legSteden: '7-15 ערים',
+                legWateren: 'a-k מים ונהרות',
+                legGebieden: 'H-L אזורים',
+                legGebergten: 'l-n הרים',
+                legHint: 'ניתן לגרור את המפה ולהתקרב עם כפתורי ה-+/-',
+                lblDutchName: 'שם בהולנדית (Nederlands):',
+                btnSpeak: 'השמע בהולנדית',
+                btnCenter: 'מרכז במפה',
+                lblPron: 'איך מבטאים?',
+                lblLocalLang: 'בעברית:',
+                lblScore: 'ניקוד:',
+                btnSpeakQuiz: '🔊 השמע הגייה בהולנדית',
+                btnNext: 'הבא ⏭️',
+                sidebarListTitle: '📋 רשימת הסימונים (48)',
+                quickSearchPlaceholder: 'סינון מהיר...',
+                findPrompt: 'לחץ על הסימון במפה עבור:',
+                findWait: 'לחץ על האות או המספר המתאים במפה...',
+                namePromptPrefix: 'מה השם בהולנדית של סימון',
+                nameHintPrefix: 'רמז:',
+                nameWait: 'בחר את התשובה הנכונה מתוך 4 האפשרויות...',
+                correctMsg: '✅ מעולה!',
+                wrongPinMsg: '❌ לחצת על',
+                searchForMsg: 'חפש את',
+                wrongChoiceMsg: '❌ לא, זה',
+                tryAgainMsg: 'נסה שוב!',
+                sentencesHeading: '📌 משפטים והוראות מתוך דף המבחן (לחץ על הרמקול כדי לשמוע בהולנדית)',
+                dictHeading: '🗣️ מילון מונחי המפה בהולנדית (Woordenlijst)',
+                tablesHeading: '📚 טבלת כל 48 המקומות למבחן לפי קטגוריות',
+                tableSearchPlaceholder: 'חפש שם בהולנדית, תרגום או קוד...',
+                thCode: 'סימון',
+                thDutch: 'הולנדית (Nederlands)',
+                thLocal: 'תרגום (עברית)',
+                thPron: 'הגייה',
+                thDesc: 'הסבר ומיקום',
+                thActions: 'פעולות',
+                fcHeading: '🃏 כרטיסיות זיכרון (Flashcards)',
+                fcShuffle: '🔀 ערבב',
+                fcFrontPrompt: 'סימון במפה ושם בעברית:',
+                fcFrontHint: '👆 לחץ על הכרטיסייה כדי להפוך ולשמוע בהולנדית',
+                fcBackLabel: 'השם בהולנדית (Nederlands)',
+                fcSpeakAgain: '🔊 השמע שוב',
+                fcBackHint: 'לחץ להיפוך חזרה',
+                fcPrev: '➡️ הקודם',
+                fcNext: 'הבא ⬅️',
+                qmodeMc: '🔘 שאלות אמריקאיות',
+                qmodeSpell: '✍️ כתיב בהולנדית',
+                wqSpeakHint: '🔊 רמז קולי בהולנדית',
+                wqSpellPlaceholder: 'הקלד כאן את השם בהולנדית...',
+                wqCheckBtn: 'בדוק תשובה ✔️',
+                wqWaitFeedback: 'בחר או הקלד את התשובה בהולנדית...',
+                wqNextBtn: 'שאלה הבאה ⏭️',
+                wqMcQuestion: 'איך אומרים בהולנדית:',
+                wqSpellQuestion: 'כתוב בהולנדית:',
+                symbolWord: 'סימון'
+            },
+            ru: {
+                dir: 'ltr',
+                hdrSub: 'Интерактивный тренажер по географии Западной Европы и нидерландскому языку (48 объектов)',
+                navMap: 'Карта и тренировка',
+                navVocab: 'Словарь и таблицы',
+                navFc: 'Карточки',
+                navQuiz: 'Тест и правописание',
+                modeExplore: '🔍 Свободное изучение',
+                modeFind: '🎯 Тест: «Найди на карте»',
+                modeName: '❓ Тест: «Угадай символ»',
+                zoomAll: '🌍 Вся Западная Европа',
+                zoomBelgium: '🔍 Увеличить Бельгию (K, L, l, g, 3, 9)',
+                zoomUk: '🇬🇧 Британия и Ирландия',
+                openOriginal: '🖼️ Загрузить карту / Drive',
+                filterCatLabel: 'Категория:',
+                filterAll: 'Показать все (48)',
+                filterLanden: 'Страны - Landen (A-G)',
+                filterHoofdsteden: 'Столицы - Hoofdsteden (1-6)',
+                filterSteden: 'Города - Steden (7-15)',
+                filterWateren: 'Моря и реки - Wateren (a-k)',
+                filterGebieden: 'Регионы - Gebieden (H-L)',
+                filterGebergten: 'Горы - Gebergten (l-n)',
+                filterPlus: 'Бонус - Plus TOPO',
+                filterHard: '⭐ Требует повторения',
+                btnMarkHard: 'Надо повторить',
+                btnUnmarkHard: 'Снять отметку (✅)',
+                tileVector: 'Контурная учебная карта (без API)',
+                tileGray: 'Контурная карта (Esri Canvas)',
+                tilePhysical: 'Физическая карта (Esri)',
+                tileOsm: 'Подробная карта (OpenStreetMap)',
+                tileCustom: '🖼️ Оригинальный лист теста (Фото / Drive)',
+                dragPins: 'Разрешить двигать метки',
+                showLabels: 'Показать названия на карте (NL)',
+                legLanden: 'A-G Страны',
+                legHoofdsteden: '1-6 Столицы',
+                legSteden: '7-15 Города',
+                legWateren: 'a-k Воды и реки',
+                legGebieden: 'H-L Регионы',
+                legGebergten: 'l-n Горы',
+                legHint: 'Перемещайте карту мышью и используйте кнопки +/-',
+                lblDutchName: 'По-нидерландски (Nederlands):',
+                btnSpeak: 'Озвучить (NL)',
+                btnCenter: 'На карте',
+                lblPron: 'Произношение:',
+                lblLocalLang: 'По-русски:',
+                lblScore: 'Счет:',
+                btnSpeakQuiz: '🔊 Прослушать произношение (NL)',
+                btnNext: 'Далее ⏭️',
+                sidebarListTitle: '📋 Список объектов (48)',
+                quickSearchPlaceholder: 'Быстрый поиск...',
+                findPrompt: 'Нажмите на метку на карте для:',
+                findWait: 'Нажмите на нужную букву или цифру на карте...',
+                namePromptPrefix: 'Как по-нидерландски называется метка',
+                nameHintPrefix: 'Подсказка:',
+                nameWait: 'Выберите правильный ответ из 4 вариантов...',
+                correctMsg: '✅ Отлично!',
+                wrongPinMsg: '❌ Вы нажали на',
+                searchForMsg: 'Найдите',
+                wrongChoiceMsg: '❌ Нет, это',
+                tryAgainMsg: 'Попробуйте еще раз!',
+                sentencesHeading: '📌 Фразы и инструкции из теста (нажмите на динамик для прослушивания)',
+                dictHeading: '🗣️ Словарь географических терминов (Woordenlijst)',
+                tablesHeading: '📚 Полная таблица всех 48 объектов по категориям',
+                tableSearchPlaceholder: 'Поиск по названию или коду...',
+                thCode: 'Код',
+                thDutch: 'Нидерландский (NL)',
+                thLocal: 'По-русски',
+                thPron: 'Произношение',
+                thDesc: 'Описание и расположение',
+                thActions: 'Действия',
+                fcHeading: '🃏 Карточки для запоминания (Flashcards)',
+                fcShuffle: '🔀 Перемешать',
+                fcFrontPrompt: 'Код на карте и название по-русски:',
+                fcFrontHint: '👆 Нажмите на карточку, чтобы перевернуть и услышать по-нидерландски',
+                fcBackLabel: 'Название по-нидерландски (Nederlands)',
+                fcSpeakAgain: '🔊 Повторить',
+                fcBackHint: 'Нажмите, чтобы перевернуть обратно',
+                fcPrev: '⬅️ Назад',
+                fcNext: 'Вперед ➡️',
+                qmodeMc: '🔘 Выбор ответа',
+                qmodeSpell: '✍️ Правописание (NL)',
+                wqSpeakHint: '🔊 Голосовая подсказка (NL)',
+                wqSpellPlaceholder: 'Введите название по-нидерландски...',
+                wqCheckBtn: 'Проверить ✔️',
+                wqWaitFeedback: 'Выберите или введите ответ по-нидерландски...',
+                wqNextBtn: 'Следующий вопрос ⏭️',
+                wqMcQuestion: 'Как по-нидерландски:',
+                wqSpellQuestion: 'Напишите по-нидерландски:',
+                symbolWord: 'код'
+            },
+            en: {
+                dir: 'ltr',
+                hdrSub: 'Interactive Study Guide for West-Europe Geography & Dutch (Page 48 - All 48 Items)',
+                navMap: 'Map & Practice',
+                navVocab: 'Dutch & Tables',
+                navFc: 'Flashcards',
+                navQuiz: 'Quiz & Spelling',
+                modeExplore: '🔍 Free Explore Mode',
+                modeFind: '🎯 Quiz: "Find on Map"',
+                modeName: '❓ Quiz: "Name the Symbol"',
+                zoomAll: '🌍 All West-Europe',
+                zoomBelgium: '🔍 Zoom Belgium (K, L, l, g, 3, 9)',
+                zoomUk: '🇬🇧 UK & Ireland',
+                openOriginal: '🖼️ Upload Map / Drive Link',
+                filterCatLabel: 'Filter Category:',
+                filterAll: 'Show All (48 Items)',
+                filterLanden: 'Countries - Landen (A-G)',
+                filterHoofdsteden: 'Capitals - Hoofdsteden (1-6)',
+                filterSteden: 'Cities - Steden (7-15)',
+                filterWateren: 'Waters & Rivers - Wateren (a-k)',
+                filterGebieden: 'Regions - Gebieden (H-L)',
+                filterGebergten: 'Mountains - Gebergten (l-n)',
+                filterPlus: 'Bonus - Plus TOPO',
+                filterHard: '⭐ Needs Review (Starred)',
+                btnMarkHard: 'Mark as Hard',
+                btnUnmarkHard: 'Unmark Hard (✅)',
+                tileVector: 'Clean Blank Atlas Map (Built-in)',
+                tileGray: 'Blank Geographic Map (Esri Canvas)',
+                tilePhysical: 'Physical Map - Mountains & Rivers',
+                tileOsm: 'Detailed Map with Names (OpenStreetMap)',
+                tileCustom: '🖼️ Original Test Sheet Image (Upload / Drive)',
+                dragPins: 'Allow dragging pins to adjust',
+                showLabels: 'Show Dutch labels on map',
+                legLanden: 'A-G Countries',
+                legHoofdsteden: '1-6 Capitals',
+                legSteden: '7-15 Cities',
+                legWateren: 'a-k Waters',
+                legGebieden: 'H-L Regions',
+                legGebergten: 'l-n Mountains',
+                legHint: 'Drag the map and zoom using the +/- buttons',
+                lblDutchName: 'Dutch Name (Nederlands):',
+                btnSpeak: 'Listen in Dutch',
+                btnCenter: 'Center Map',
+                lblPron: 'Pronunciation:',
+                lblLocalLang: 'In English:',
+                lblScore: 'Score:',
+                btnSpeakQuiz: '🔊 Listen to Dutch Pronunciation',
+                btnNext: 'Next ⏭️',
+                sidebarListTitle: '📋 All 48 Map Items',
+                quickSearchPlaceholder: 'Quick filter...',
+                findPrompt: 'Click the correct symbol on the map for:',
+                findWait: 'Click the matching letter or number on the map...',
+                namePromptPrefix: 'What is the Dutch name for symbol',
+                nameHintPrefix: 'Hint:',
+                nameWait: 'Choose the correct answer from the 4 options...',
+                correctMsg: '✅ Awesome!',
+                wrongPinMsg: '❌ You clicked',
+                searchForMsg: 'Look for',
+                wrongChoiceMsg: '❌ No, that is',
+                tryAgainMsg: 'Try again!',
+                sentencesHeading: '📌 Test Sheet Instructions in Dutch (Click speaker to listen)',
+                dictHeading: '🗣️ Essential Dutch Geography Terms (Woordenlijst)',
+                tablesHeading: '📚 Complete Table of All 48 Study Items by Category',
+                tableSearchPlaceholder: 'Search Dutch name, translation or code...',
+                thCode: 'Code',
+                thDutch: 'Dutch (Nederlands)',
+                thLocal: 'English',
+                thPron: 'Pronunciation',
+                thDesc: 'Description & Location',
+                thActions: 'Actions',
+                fcHeading: '🃏 Study Flashcards',
+                fcShuffle: '🔀 Shuffle',
+                fcFrontPrompt: 'Map Symbol & English Name:',
+                fcFrontHint: '👆 Click the card to flip and hear in Dutch',
+                fcBackLabel: 'Dutch Name (Nederlands)',
+                fcSpeakAgain: '🔊 Listen Again',
+                fcBackHint: 'Click to flip back',
+                fcPrev: '⬅️ Previous',
+                fcNext: 'Next ➡️',
+                qmodeMc: '🔘 Multiple Choice',
+                qmodeSpell: '✍️ Dutch Spelling',
+                wqSpeakHint: '🔊 Audio Hint (Dutch)',
+                wqSpellPlaceholder: 'Type the Dutch name here...',
+                wqCheckBtn: 'Check Answer ✔️',
+                wqWaitFeedback: 'Select or type the answer in Dutch...',
+                wqNextBtn: 'Next Question ⏭️',
+                wqMcQuestion: 'How do you say in Dutch:',
+                wqSpellQuestion: 'Type in Dutch:',
+                symbolWord: 'symbol'
+            },
+            nl: {
+                dir: 'ltr',
+                hdrSub: 'Interactieve oefenapp voor Cito 100 TOPO West-Europa (Bladzijde 48 - Alle 48 namen)',
+                navMap: 'Kaart & Oefenen',
+                navVocab: 'Woordenlijst & Overzicht',
+                navFc: 'Flitskaarten',
+                navQuiz: 'Toets & Spelling',
+                modeExplore: '🔍 Vrij verkennen',
+                modeFind: '🎯 Oefen: "Zoek op de kaart"',
+                modeName: '❓ Oefen: "Welke naam hoort hier?"',
+                zoomAll: '🌍 Heel West-Europa',
+                zoomBelgium: '🔍 Inzoomen op België (K, L, l, g, 3, 9)',
+                zoomUk: '🇬🇧 VK & Ierland',
+                openOriginal: '🖼️ Eigen toetskaart / Drive',
+                filterCatLabel: 'Categorie:',
+                filterAll: 'Toon alles (48 namen)',
+                filterLanden: 'Landen (A-G)',
+                filterHoofdsteden: 'Hoofdsteden (1-6)',
+                filterSteden: 'Steden (7-15)',
+                filterWateren: 'Wateren (a-k)',
+                filterGebieden: 'Gebieden (H-L)',
+                filterGebergten: 'Gebergten (l-n)',
+                filterPlus: 'Plus TOPO',
+                filterHard: '⭐ Nog oefenen (Gemarkeerd)',
+                btnMarkHard: 'Nog oefenen',
+                btnUnmarkHard: 'Genoeg geoefend (✅)',
+                tileVector: 'Blinde atlaskaart (Standaard)',
+                tileGray: 'Blinde kaart (Esri Canvas)',
+                tilePhysical: 'Fysieke kaart - bergen & rivieren',
+                tileOsm: 'Kaart met namen (OpenStreetMap)',
+                tileCustom: '🖼️ Origineel werkblad (Upload / Drive)',
+                dragPins: 'Punten verplaatsen toestaan',
+                showLabels: 'Toon namen op de kaart',
+                legLanden: 'A-G Landen',
+                legHoofdsteden: '1-6 Hoofdsteden',
+                legSteden: '7-15 Steden',
+                legWateren: 'a-k Wateren',
+                legGebieden: 'H-L Gebieden',
+                legGebergten: 'l-n Gebergten',
+                legHint: 'Sleep de kaart en zoom in met de +/- knoppen',
+                lblDutchName: 'Naam op de toets (Nederlands):',
+                btnSpeak: 'Luister uitspraak',
+                btnCenter: 'Toon op kaart',
+                lblPron: 'Uitspraak / Lettergrepen:',
+                lblLocalLang: 'Categorie & Code:',
+                lblScore: 'Score:',
+                btnSpeakQuiz: '🔊 Luister naar de uitspraak',
+                btnNext: 'Volgende ⏭️',
+                sidebarListTitle: '📋 Alle 48 namen op de kaart',
+                quickSearchPlaceholder: 'Snel zoeken...',
+                findPrompt: 'Klik op de juiste letter of cijfer voor:',
+                findWait: 'Klik op het juiste symbool op de kaart...',
+                namePromptPrefix: 'Welke naam hoort bij symbool',
+                nameHintPrefix: 'Categorie:',
+                nameWait: 'Kies het juiste antwoord uit de 4 opties...',
+                correctMsg: '✅ Goed gedaan!',
+                wrongPinMsg: '❌ Je klikte op',
+                searchForMsg: 'Zoek naar',
+                wrongChoiceMsg: '❌ Nee, dat is',
+                tryAgainMsg: 'Probeer het nog eens!',
+                sentencesHeading: '📌 Zinnen op het werkblad (Klik op de luidspreker om te luisteren)',
+                dictHeading: '🗣️ Belangrijke begrippen voor de toets (Woordenlijst)',
+                tablesHeading: '📚 Volledig overzicht van alle 48 namen per categorie',
+                tableSearchPlaceholder: 'Zoek op naam of code...',
+                thCode: 'Code',
+                thDutch: 'Naam (Nederlands)',
+                thLocal: 'Soort / Categorie',
+                thPron: 'Lettergrepen',
+                thDesc: 'Uitleg en ligging op de kaart',
+                thActions: 'Acties',
+                fcHeading: '🃏 Flitskaarten (Flashcards)',
+                fcShuffle: '🔀 Schudden',
+                fcFrontPrompt: 'Code op de kaart & Beschrijving:',
+                fcFrontHint: '👆 Klik op de kaart om het antwoord te zien en te horen',
+                fcBackLabel: 'Naam op de kaart (Nederlands)',
+                fcSpeakAgain: '🔊 Luister opnieuw',
+                fcBackHint: 'Klik om terug te draaien',
+                fcPrev: '⬅️ Vorige',
+                fcNext: 'Volgende ➡️',
+                qmodeMc: '🔘 Meerkeuzevragen',
+                qmodeSpell: '✍️ Schrijf de naam (Spelling)',
+                wqSpeakHint: '🔊 Luisterhint',
+                wqSpellPlaceholder: 'Typ hier de naam met een hoofdletter...',
+                wqCheckBtn: 'Controleer ✔️',
+                wqWaitFeedback: 'Kies of typ het juiste antwoord...',
+                wqNextBtn: 'Volgende vraag ⏭️',
+                wqMcQuestion: 'Welke naam hoort bij:',
+                wqSpellQuestion: 'Schrijf de juiste naam voor:',
+                symbolWord: 'code'
+            }
+        };
+
+        // תרגום שמות הקטגוריות ל-4 השפות
+        const catTranslations = {
+            Landen: { he: 'מדינה', ru: 'Страна', en: 'Country', nl: 'Land' },
+            Hoofdsteden: { he: 'עיר בירה', ru: 'Столица', en: 'Capital City', nl: 'Hoofdstad' },
+            Steden: { he: 'עיר', ru: 'Город', en: 'City', nl: 'Stad' },
+            Wateren: { he: 'גוף מים / נהר', ru: 'Водный объект', en: 'Water / River', nl: 'Water / Rivier' },
+            Gebieden: { he: 'אזור / חבל', ru: 'Регион / область', en: 'Region', nl: 'Gebied' },
+            Gebergten: { he: 'רכס הרים', ru: 'Горный хребет', en: 'Mountain Range', nl: 'Gebergte' },
+            'Plus TOPO': { he: 'Plus TOPO', ru: 'Plus TOPO (Бонус)', en: 'Plus TOPO (Bonus)', nl: 'Plus TOPO' }
+        };
+
+        // משפטים מתוך דף המבחן ב-4 שפות
+        const worksheetSentences = [
+            {
+                nl: "Zoek de namen op in de atlas.",
+                speak: "Zoek de namen op in de atlas",
+                he: { trans: "חפש את השמות באטלס.", pron: "הגייה: זוּק דֶה נַאמֶן אוֹפּ אִין דֶה אַטְלַס" },
+                ru: { trans: "Найдите названия в атласе.", pron: "Произношение: Зук де намен оп ин де атлас" },
+                en: { trans: "Look up the names in the atlas.", pron: "Pronunciation: Zook de nah-men op in de at-las" },
+                nl_info: { trans: "Gebruik het register achterin de atlas om de plaatsen te vinden.", pron: "Zoek = חפש / חפשו" }
+            },
+            {
+                nl: "Gebruik de kaart op bladzijde 48.",
+                speak: "Gebruik de kaart op bladzijde acht en veertig",
+                he: { trans: "השתמש במפה בעמוד 48.", pron: "הגייה: חֶבְּרַאוּיק דֶה קַארְט אוֹפּ בְּלַדְזַיידֶה 48" },
+                ru: { trans: "Используйте карту на странице 48.", pron: "Произношение: Хебрёйк де карт оп бладзейде 48" },
+                en: { trans: "Use the map on page 48.", pron: "Pronunciation: Kheb-ruyk de kahrt op blad-zigh-de 48" },
+                nl_info: { trans: "Kijk op pagina 48 van de atlas voor de kaart van West-Europa.", pron: "Bladzijde = pagina" }
+            },
+            {
+                nl: "Kleur de bolletjes van de Plus TOPO die je ook voor de toets leert.",
+                speak: "Kleur de bolletjes van de Plus TOPO die je ook voor de toets leert",
+                he: { trans: "צבע את העיגולים של ה-Plus TOPO שאתה גם לומד למבחן.", pron: "טוֹטְס (toets) = מבחן | בּוֹלֶטְיֶס = עיגולים קטנים" },
+                ru: { trans: "Закрасьте кружочки Plus TOPO, которые вы тоже учите к тесту.", pron: "тутс (toets) = тест | боллетьес = кружочки" },
+                en: { trans: "Color the circles of the Plus TOPO that you are also learning for the test.", pron: "toets = test | bolletjes = little circles" },
+                nl_info: { trans: "Niet iedereen hoeft de Plus TOPO te leren; kleur wat jij moet kennen.", pron: "De toets = het proefwerk" }
+            }
+        ];
+
+        // 1. מילון מונחי הבסיס בהולנדית ב-4 שפות
+        const coreVocabData = [
+            {
+                nl: "Landen",
+                he: "מדינות", pron: "לַנְדֶן", tip: "יחיד: Land (ארץ / מדינה)",
+                ru: "Страны", pron_ru: "Ланден", tip_ru: "Ед. число: het land (страна)",
+                en: "Countries", pron_en: "lahn-den", tip_en: "Singular: het land (country)",
+                nl_desc: "Staten met eigen grenzen (enkelvoud: het land)", pron_nl: "Lan-den", tip_nl: "A t/m G op de kaart"
+            },
+            {
+                nl: "Hoofdsteden",
+                he: "ערי בירה", pron: "הוֹפְד-סְטֶדֶן", tip: "Hoofd = ראש, Steden = ערים",
+                ru: "Столицы", pron_ru: "Хофд-стеден", tip_ru: "Hoofd = голова/главный, Steden = города",
+                en: "Capital Cities", pron_en: "hohfd-stay-den", tip_en: "Hoofd = head/main, Steden = cities",
+                nl_desc: "De belangrijkste stad van een land, waar de regering zit", pron_nl: "Hoofd-ste-den", tip_nl: "1 t/m 6 op de kaart"
+            },
+            {
+                nl: "Steden",
+                he: "ערים", pron: "סְטֶדֶן", tip: "יחיד: Stad (עיר)",
+                ru: "Города", pron_ru: "Стеден", tip_ru: "Ед. число: de stad (город)",
+                en: "Cities", pron_en: "stay-den", tip_en: "Singular: de stad (city)",
+                nl_desc: "Grote plaatsen waar veel mensen wonen (enkelvoud: de stad)", pron_nl: "Ste-den", tip_nl: "7 t/m 15 op de kaart"
+            },
+            {
+                nl: "Wateren",
+                he: "גופי מים (ימים ונהרות)", pron: "וַאטֶרֶן", tip: "Water = מים",
+                ru: "Водные объекты (моря и реки)", pron_ru: "Ватерен", tip_ru: "Zee = море, Rivier = река",
+                en: "Bodies of Water (Seas & Rivers)", pron_en: "vah-te-ren", tip_en: "Includes oceans, seas and rivers",
+                nl_desc: "Oceanen, zeeën en rivieren op de kaart", pron_nl: "Wa-te-ren", tip_nl: "Kleine letters a t/m k"
+            },
+            {
+                nl: "Gebieden",
+                he: "אזורים / חבלים", pron: "חֶבִּידֶן", tip: "האות G בהולנדית נהגית כמו ח'",
+                ru: "Регионы / области", pron_ru: "Хебиден", tip_ru: "Ед. число: het gebied (область)",
+                en: "Regions / Areas", pron_en: "khe-bee-den", tip_en: "Singular: het gebied (area/region)",
+                nl_desc: "Delen van een land of streken met een eigen naam", pron_nl: "Ge-bie-den", tip_nl: "Hoofdletters H t/m L"
+            },
+            {
+                nl: "Gebergten",
+                he: "רכסי הרים", pron: "חֶבֶּרְחְטֶן", tip: "Berg = הר",
+                ru: "Горные хребты", pron_ru: "Хеберхтен", tip_ru: "De berg = гора",
+                en: "Mountain Ranges", pron_en: "khe-berkh-ten", tip_en: "Berg = mountain",
+                nl_desc: "Gebieden met veel hoge bergen bij elkaar", pron_nl: "Ge-berg-ten", tip_nl: "Kleine letters l, m, n"
+            },
+            {
+                nl: "De kaart",
+                he: "המפה", pron: "דֶה קַארְט", tip: "מופיע בהוראות המבחן",
+                ru: "Карта", pron_ru: "Де карт", tip_ru: "De blinde kaart = контурная карта",
+                en: "The Map", pron_en: "de kahrt", tip_en: "Used in test instructions",
+                nl_desc: "Tekening van een gebied van bovenaf gezien", pron_nl: "De kaart", tip_nl: "Bladzijde 48 in de atlas"
+            },
+            {
+                nl: "De toets",
+                he: "המבחן / הבוחן", pron: "דֶה טוּטְס", tip: "Voor de toets = לקראת המבחן",
+                ru: "Тест / контрольная", pron_ru: "Де тутс", tip_ru: "Voor de toets = для теста",
+                en: "The Test / Quiz", pron_en: "de toots", tip_en: "Voor de toets = for the test",
+                nl_desc: "Proefwerk op school om te kijken wat je hebt geleerd", pron_nl: "De toets", tip_nl: "Topografietoets"
+            },
+            {
+                nl: "Bladzijde 48",
+                he: "עמוד 48", pron: "בְּלַדְזַיידֶה 48", tip: "העמוד באטלס לבדיקת השמות",
+                ru: "Страница 48", pron_ru: "Бладзейде 48", tip_ru: "Страница в школьном атласе",
+                en: "Page 48", pron_en: "blad-zigh-de 48", tip_en: "The page number in the school atlas",
+                nl_desc: "Acht-en-veertig: pagina in de atlas van West-Europa", pron_nl: "Blad-zij-de 48", tip_nl: "Kijk in de atlas"
+            }
+        ];
+
+        // תרגומי כל 48 המקומות לרוסית, אנגלית והולנדית (עברית כבר קיימת ב-topoData)
+        const itemI18n = {
+            L_A: {
+                ru: { name: "Ирландия", pron: "Ирланд", desc: "Островное государство к западу от Великобритании. Столица — Дублин (1)." },
+                en: { name: "Ireland", pron: "EER-land", desc: "Island country west of Great Britain. Its capital city is Dublin (1)." },
+                nl: { name: "Land (A)", pron: "Ier-land", desc: "Eilandstaat ten westen van het Verenigd Koninkrijk. De hoofdstad is Dublin (1)." }
+            },
+            L_B: {
+                ru: { name: "Великобритания (Соединённое Королевство)", pron: "Ференихд Конинкрейк", desc: "Обведено пунктирной линией: включает Англию, Шотландию, Уэльс и Северную Ирландию. Столица — Лондон (2)." },
+                en: { name: "United Kingdom", pron: "ver-AY-nikhd KOH-nink-riyk", desc: "Marked by a dashed line around England, Scotland, Wales, and Northern Ireland. Capital: London (2)." },
+                nl: { name: "Land (B)", pron: "Ver-e-nigd Ko-nink-rijk", desc: "Bestaat uit Engeland, Schotland, Wales en Noord-Ierland. De hoofdstad is Londen (2)." }
+            },
+            L_C: {
+                ru: { name: "Нидерланды (Голландия)", pron: "Недерланд", desc: "Страна, в которой мы живем! Граничит с Северным морем (c), Германией (D) и Бельгией (E)." },
+                en: { name: "The Netherlands", pron: "NAY-der-land", desc: "Our country! Borders the North Sea (c), Germany (D), and Belgium (E)." },
+                nl: { name: "Land (C)", pron: "Ne-der-land", desc: "Ons eigen land! Ligt aan de Noordzee (c), tussen Duitsland (D) en België (E)." }
+            },
+            L_D: {
+                ru: { name: "Германия", pron: "Дёйтсланд", desc: "Большая страна к востоку от Нидерландов. Столица — Берлин (5)." },
+                en: { name: "Germany", pron: "DOYTS-land", desc: "Large country east of the Netherlands. Its capital is Berlin (5)." },
+                nl: { name: "Land (D)", pron: "Duits-land", desc: "Groot buurland ten oosten van Nederland. De hoofdstad is Berlijn (5)." }
+            },
+            L_E: {
+                ru: { name: "Бельгия", pron: "Белхие", desc: "Южный сосед Нидерландов. Показана также на врезке внизу слева. Столица — Брюссель (3)." },
+                en: { name: "Belgium", pron: "BEL-khee-uh", desc: "Southern neighbor of the Netherlands. Also shown in the inset map. Capital: Brussels (3)." },
+                nl: { name: "Land (E)", pron: "Bel-gi-ë", desc: "Zuiderbuur van Nederland. Staat ook op het inzetkaartje linksonder. Hoofdstad: Brussel (3)." }
+            },
+            L_F: {
+                ru: { name: "Люксембург (страна)", pron: "Люксембюрх", desc: "Маленькое государство между Бельгией, Германией и Францией." },
+                en: { name: "Luxembourg (country)", pron: "LUK-sem-burkh", desc: "Small country located between Belgium, Germany, and France." },
+                nl: { name: "Land (F)", pron: "Lux-em-burg", desc: "Klein landje ten zuiden van België, tussen Frankrijk en Duitsland." }
+            },
+            L_G: {
+                ru: { name: "Франция", pron: "Франкрейк", desc: "Самая большая страна Западной Европы. Столица — Париж (6 - Parijs)." },
+                en: { name: "France", pron: "FRANK-riyk", desc: "The largest country in Western Europe. Its capital is Paris (6 - Parijs)." },
+                nl: { name: "Land (G)", pron: "Frank-rijk", desc: "Groot land in het zuiden van West-Europa. De hoofdstad is Parijs (6)." }
+            },
+            H_1: {
+                ru: { name: "Дублин (столица Ирландии)", pron: "Даблин", desc: "Столица Ирландии (A), на восточном побережье острова." },
+                en: { name: "Dublin (capital of Ireland)", pron: "DUB-lin", desc: "Capital city of Ireland (A), on the east coast of the island." },
+                nl: { name: "Hoofdstad van Ierland (1)", pron: "Dub-lin", desc: "De hoofdstad van Ierland (A), aan de oostkust." }
+            },
+            H_2: {
+                ru: { name: "Лондон (столица Великобритании)", pron: "Лонден", desc: "Столица Великобритании (B), расположена на реке Темзе (f)." },
+                en: { name: "London (capital of the UK)", pron: "LON-den", desc: "Capital of the United Kingdom (B), located on the River Thames (f)." },
+                nl: { name: "Hoofdstad van het VK (2)", pron: "Lon-den", desc: "Hoofdstad van het Verenigd Koninkrijk (B), ligt aan de rivier de Theems (f)." }
+            },
+            H_3: {
+                ru: { name: "Брюссель (столица Бельгии)", pron: "Брюссел", desc: "Столица Бельгии (E). Также отмечена цифрой 3 на врезке Бельгии." },
+                en: { name: "Brussels (capital of Belgium)", pron: "BRUS-sel", desc: "Capital of Belgium (E). Also shown in the Belgium inset map." },
+                nl: { name: "Hoofdstad van België (3)", pron: "Brus-sel", desc: "Hoofdstad van België (E), ligt midden in het land." }
+            },
+            H_4: {
+                ru: { name: "Люксембург (столица)", pron: "Люксембюрх", desc: "Столица государства Люксембург (F)." },
+                en: { name: "Luxembourg City (capital)", pron: "LUK-sem-burkh", desc: "Capital city of the country of Luxembourg (F)." },
+                nl: { name: "Hoofdstad van Luxemburg (4)", pron: "Lux-em-burg", desc: "De hoofdstad van het land Luxemburg (F), heeft dezelfde naam als het land." }
+            },
+            H_5: {
+                ru: { name: "Берлин (столица Германии)", pron: "Берлейн", desc: "Столица Германии (D), расположена на северо-востоке страны." },
+                en: { name: "Berlin (capital of Germany)", pron: "ber-LIYN", desc: "Capital of Germany (D), in the northeast of the country." },
+                nl: { name: "Hoofdstad van Duitsland (5)", pron: "Ber-lijn", desc: "De hoofdstad van Duitsland (D), in het oosten van het land." }
+            },
+            H_6: {
+                ru: { name: "Париж (столица Франции)", pron: "Парейс", desc: "Столица Франции (G), стоит на реке Сене (j - Seine)." },
+                en: { name: "Paris (capital of France)", pron: "pa-RIYS", desc: "Capital of France (G), on the River Seine (j)." },
+                nl: { name: "Hoofdstad van Frankrijk (6)", pron: "Pa-rijs", desc: "De hoofdstad van Frankrijk (G), ligt aan de rivier de Seine (j)." }
+            },
+            S_7: {
+                ru: { name: "Глазго", pron: "Хласго", desc: "Крупный город в Шотландии (H - Schotland)." },
+                en: { name: "Glasgow", pron: "GLAS-go", desc: "Major city in Scotland (H - Schotland)." },
+                nl: { name: "Stad in Schotland (7)", pron: "Glas-gow", desc: "Grote stad in Schotland (H), in het noorden van het Verenigd Koninkrijk." }
+            },
+            S_8: {
+                ru: { name: "Ливерпуль", pron: "Ливерпул", desc: "Портовый город на северо-западе Англии (I)." },
+                en: { name: "Liverpool", pron: "LIV-er-pool", desc: "Port city in northwest England (I)." },
+                nl: { name: "Stad in Engeland (8)", pron: "Li-ver-pool", desc: "Havenstad in het noordwesten van Engeland (I)." }
+            },
+            S_9: {
+                ru: { name: "Антверпен", pron: "Антверпен", desc: "Крупный портовый город на севере Бельгии (цифра 9 на врезке) на реке Шельде (g)." },
+                en: { name: "Antwerp", pron: "ANT-ver-pen", desc: "Major port city in northern Belgium (number 9 in the inset map) on the River Scheldt (g)." },
+                nl: { name: "Stad in België (9)", pron: "Ant-wer-pen", desc: "Grote havenstad in Vlaanderen (België) aan de rivier de Schelde (g)." }
+            },
+            S_10: {
+                ru: { name: "Кёльн", pron: "Кёлен", desc: "Крупный город на западе Германии на реке Рейн (i - Rijn)." },
+                en: { name: "Cologne", pron: "KUH-len", desc: "Major city in western Germany on the River Rhine (i - Rijn)." },
+                nl: { name: "Stad in Duitsland (10)", pron: "Keu-len", desc: "Grote stad in het westen van Duitsland aan de rivier de Rijn (i)." }
+            },
+            S_11: {
+                ru: { name: "Гамбург", pron: "Хамбюрх", desc: "Крупный портовый город на севере Германии." },
+                en: { name: "Hamburg", pron: "HAM-burkh", desc: "Major port city in northern Germany." },
+                nl: { name: "Stad in Duitsland (11)", pron: "Ham-burg", desc: "Grote havenstad in het noorden van Duitsland." }
+            },
+            S_12: {
+                ru: { name: "Мюнхен", pron: "Мюнхен", desc: "Крупный город на юге Германии, к северу от Альп (m)." },
+                en: { name: "Munich", pron: "MUUN-khen", desc: "Major city in southern Germany, north of the Alps (m)." },
+                nl: { name: "Stad in Duitsland (12)", pron: "Mün-chen", desc: "Grote stad in het zuiden van Duitsland, vlak bij de Alpen (m)." }
+            },
+            S_13: {
+                ru: { name: "Бордо", pron: "Бордо", desc: "Город на юго-западе Франции, недалеко от Атлантического океана (a)." },
+                en: { name: "Bordeaux", pron: "bor-DOH", desc: "City in southwestern France, near the Atlantic Ocean (a)." },
+                nl: { name: "Stad in Frankrijk (13)", pron: "Bor-deaux", desc: "Stad in het zuidwesten van Frankrijk, vlak bij de Atlantische Oceaan (a)." }
+            },
+            S_14: {
+                ru: { name: "Лион", pron: "Лион", desc: "Крупный город на юго-востоке Франции на реке Роне (k - Rhône)." },
+                en: { name: "Lyon", pron: "lee-ON", desc: "Major city in southeastern France on the River Rhône (k)." },
+                nl: { name: "Stad in Frankrijk (14)", pron: "Ly-on", desc: "Stad in het zuidoosten van Frankrijk aan de rivier de Rhône (k)." }
+            },
+            S_15: {
+                ru: { name: "Марсель", pron: "Марсей", desc: "Портовый город на юге Франции на берегу Средиземного моря (e)." },
+                en: { name: "Marseille", pron: "mar-SAY", desc: "Port city in southern France on the Mediterranean Sea (e)." },
+                nl: { name: "Stad in Frankrijk (15)", pron: "Mar-seil-le", desc: "Grote havenstad in Zuid-Frankrijk aan de Middellandse Zee (e)." }
+            },
+            W_a: {
+                ru: { name: "Атлантический океан", pron: "Атлантише Оцеан", desc: "Океан к западу от Ирландии, Великобритании и Франции." },
+                en: { name: "Atlantic Ocean", pron: "at-LAN-ti-she oh-tsee-AHN", desc: "Large ocean west of Ireland, Great Britain, and France." },
+                nl: { name: "Oceaan (a)", pron: "At-lan-ti-sche O-ce-aan", desc: "De grote oceaan ten westen van Europa." }
+            },
+            W_b: {
+                ru: { name: "Ла-Манш (Английский канал)", pron: "Хет Канал", desc: "Пролив между Англией и Францией." },
+                en: { name: "The English Channel", pron: "het ka-NAHL", desc: "Strait separating southern England from northern France." },
+                nl: { name: "Zeestraat (b)", pron: "Het Ka-naal", desc: "Het water tussen Engeland en Frankrijk." }
+            },
+            W_c: {
+                ru: { name: "Северное море", pron: "Норд-зей", desc: "Море между Великобританией, Нидерландами и Германией." },
+                en: { name: "North Sea", pron: "NORD-zay", desc: "Sea located between Great Britain, the Netherlands, and Germany." },
+                nl: { name: "Zee (c)", pron: "Noord-zee", desc: "De zee tussen het Verenigd Koninkrijk en Nederland." }
+            },
+            W_d: {
+                ru: { name: "Балтийское море (Восточное море)", pron: "Ост-зей", desc: "Море к северо-востоку от Германии и восточнее Дании (Oost = восток)." },
+                en: { name: "Baltic Sea", pron: "OHST-zay", desc: "Sea northeast of Germany and east of Denmark (literally 'East Sea')." },
+                nl: { name: "Zee (d)", pron: "Oost-zee", desc: "De zee ten noordoosten van Duitsland en ten oosten van Denemarken." }
+            },
+            W_e: {
+                ru: { name: "Средиземное море", pron: "Миддел-ландсе Зей", desc: "Море к югу от Франции." },
+                en: { name: "Mediterranean Sea", pron: "MID-del-land-se zay", desc: "Sea located south of France." },
+                nl: { name: "Zee (e)", pron: "Mid-del-land-se Zee", desc: "De warme zee ten zuiden van Frankrijk." }
+            },
+            W_f: {
+                ru: { name: "Река Темза", pron: "Теймс", desc: "Река на юге Англии, протекающая через Лондон (2)." },
+                en: { name: "River Thames", pron: "tayms", desc: "River in southern England flowing through London (2)." },
+                nl: { name: "Rivier in Engeland (f)", pron: "Theems", desc: "De rivier in Engeland die door Londen (2) stroomt." }
+            },
+            W_g: {
+                ru: { name: "Река Шельда", pron: "Схелде", desc: "Река на западе Бельгии (течет через Антверпен 9) в Нидерланды. Показана на врезке!" },
+                en: { name: "River Scheldt", pron: "SKHEL-de", desc: "River flowing through western Belgium (Antwerp 9) into the Netherlands. Shown in the inset!" },
+                nl: { name: "Rivier in België/NL (g)", pron: "Schel-de", desc: "Rivier die langs Antwerpen (9) naar Nederland stroomt (zie inzetkaartje)." }
+            },
+            W_h: {
+                ru: { name: "Река Маас", pron: "Маас", desc: "Река, текущая из Франции через Бельгию в Нидерланды." },
+                en: { name: "River Meuse (Maas)", pron: "mahs", desc: "River flowing from France through Belgium into the Netherlands." },
+                nl: { name: "Rivier (h)", pron: "Maas", desc: "Rivier die vanuit Frankrijk via België naar Nederland stroomt." }
+            },
+            W_i: {
+                ru: { name: "Река Рейн", pron: "Рейн", desc: "Крупная река, текущая из Альп через Германию (Кёльн 10) в Нидерланды." },
+                en: { name: "River Rhine", pron: "riyn", desc: "Major river flowing from the Alps through western Germany (Cologne 10) into the Netherlands." },
+                nl: { name: "Rivier (i)", pron: "Rijn", desc: "Belangrijke rivier die vanuit de Alpen via Duitsland (Keulen 10) Nederland binnenstroomt." }
+            },
+            W_j: {
+                ru: { name: "Река Сена", pron: "Сен", desc: "Река на севере Франции, протекающая через Париж (6) в Ла-Манш." },
+                en: { name: "River Seine", pron: "sen", desc: "River in northern France flowing through Paris (6) into the English Channel." },
+                nl: { name: "Rivier in Frankrijk (j)", pron: "Sei-ne", desc: "Rivier in Noord-Frankrijk die door Parijs (6) stroomt." }
+            },
+            W_k: {
+                ru: { name: "Река Рона", pron: "Рон", desc: "Река на юго-востоке Франции, течет через Лион (14) в Средиземное море." },
+                en: { name: "River Rhône", pron: "rohn", desc: "River in southeastern France flowing through Lyon (14) to the Mediterranean Sea." },
+                nl: { name: "Rivier in Frankrijk (k)", pron: "Rhô-ne", desc: "Rivier in Zuid-Frankrijk die langs Lyon (14) naar de Middellandse Zee stroomt." }
+            },
+            G_H: {
+                ru: { name: "Шотландия", pron: "Схотланд", desc: "Северная часть острова Великобритания." },
+                en: { name: "Scotland", pron: "SKHOT-land", desc: "The northern part of Great Britain." },
+                nl: { name: "Gebied in het VK (H)", pron: "Schot-land", desc: "Het noordelijke deel van het Verenigd Koninkrijk (met stad Glasgow 7)." }
+            },
+            G_I: {
+                ru: { name: "Англия", pron: "Энгеланд", desc: "Центральная и южная часть острова Великобритания." },
+                en: { name: "England", pron: "ENG-uh-land", desc: "The largest central and southern part of Great Britain." },
+                nl: { name: "Gebied in het VK (I)", pron: "En-ge-land", desc: "Het grootste deel van het Verenigd Koninkrijk (met Londen en Liverpool)." }
+            },
+            G_J: {
+                ru: { name: "Рурская область (Рурский бассейн)", pron: "Рур-хебид", desc: "Важный промышленный и городской район на западе Германии недалеко от Нидерландов." },
+                en: { name: "Ruhr Area", pron: "ROOR-khe-beed", desc: "Important urban and industrial area in western Germany, near the Netherlands." },
+                nl: { name: "Gebied in Duitsland (J)", pron: "Ruhr-ge-bied", desc: "Dichtbevolkt gebied met veel steden en industrie in West-Duitsland." }
+            },
+            G_K: {
+                ru: { name: "Фландрия", pron: "Фландерен", desc: "Северная половина Бельгии, где говорят по-нидерландски (на врезке слева внизу)." },
+                en: { name: "Flanders", pron: "FLAHN-de-ren", desc: "Northern half of Belgium where Dutch (Flemish) is spoken (see Belgium inset)." },
+                nl: { name: "Gebied in België (K)", pron: "Vlaan-de-ren", desc: "Het noordelijke deel van België waar Nederlands wordt gesproken." }
+            },
+            G_L: {
+                ru: { name: "Валлония", pron: "Валлоние", desc: "Южная половина Бельгии, где говорят по-французски (на врезке слева внизу)." },
+                en: { name: "Wallonia", pron: "wah-LOH-nee-uh", desc: "Southern half of Belgium where French is spoken (see Belgium inset)." },
+                nl: { name: "Gebied in België (L)", pron: "Wal-lo-ni-ë", desc: "Het zuidelijke deel van België waar Frans wordt gesproken." }
+            },
+            M_l: {
+                ru: { name: "Арденны", pron: "Арденнен", desc: "Лесистая возвышенность на юго-востоке Бельгии (маленькая буква l на врезке Бельгии)." },
+                en: { name: "Ardennes", pron: "ar-DEN-nen", desc: "Forested hills and low mountain range in southeastern Belgium (lowercase l in inset)." },
+                nl: { name: "Gebergte in België (l)", pron: "Ar-den-nen", desc: "Heuvelachtig en bosrijk gebied in het zuidoosten van België (kleine letter l)." }
+            },
+            M_m: {
+                ru: { name: "Альпы", pron: "Алпен", desc: "Самые высокие горы Европы (на юго-востоке Франции, в Швейцарии, Италии и Австрии)." },
+                en: { name: "The Alps", pron: "AHL-pen", desc: "Highest mountain range in Europe (southeastern France, Switzerland, Italy, Austria)." },
+                nl: { name: "Gebergte (m)", pron: "Al-pen", desc: "Hooggebergte in onder andere Zuidoost-Frankrijk, Zwitserland en Oostenrijk." }
+            },
+            M_n: {
+                ru: { name: "Пиренеи", pron: "Пиренейен", desc: "Горный хребет на границе между Францией и Испанией." },
+                en: { name: "Pyrenees", pron: "pee-re-NAY-en", desc: "Mountain range forming the border between southern France and Spain." },
+                nl: { name: "Gebergte (n)", pron: "Py-re-nee-ën", desc: "Hooggebergte op de grens van Zuid-Frankrijk en Spanje." }
+            },
+            P_NI: {
+                ru: { name: "Северная Ирландия", pron: "Норд-Ирланд", desc: "Северная часть острова Ирландия, входит в состав Великобритании (B)." },
+                en: { name: "Northern Ireland", pron: "NORD-EER-land", desc: "Northern part of the island of Ireland, part of the United Kingdom (B)." },
+                nl: { name: "Plus TOPO (NI)", pron: "Noord-Ier-land", desc: "Noordelijk deel van het eiland Ierland dat bij het Verenigd Koninkrijk (B) hoort." }
+            },
+            P_WA: {
+                ru: { name: "Уэльс", pron: "Уэйлс", desc: "Регион на западе Великобритании." },
+                en: { name: "Wales", pron: "wayls", desc: "Country/region in the west of Great Britain, part of the UK." },
+                nl: { name: "Plus TOPO (WA)", pron: "Wales", desc: "Deel van het Verenigd Koninkrijk ten westen van Engeland." }
+            },
+            P_NM: {
+                ru: { name: "Нормандия", pron: "Нормандие", desc: "Регион на северо-западе Франции на берегу Ла-Манша." },
+                en: { name: "Normandy", pron: "nor-MAN-dee-uh", desc: "Region in northwestern France along the English Channel." },
+                nl: { name: "Plus TOPO (NM)", pron: "Nor-man-di-ë", desc: "Streek in het noordwesten van Frankrijk aan Het Kanaal." }
+            },
+            P_BR: {
+                ru: { name: "Бретань", pron: "Бретанье", desc: "Крупный полуостров на северо-западе Франции, выступающий в Атлантический океан." },
+                en: { name: "Brittany", pron: "bre-TAHN-yuh", desc: "Large peninsula in northwestern France jutting into the Atlantic Ocean." },
+                nl: { name: "Plus TOPO (BR)", pron: "Bre-tag-ne", desc: "Groot schiereiland in het noordwesten van Frankrijk." }
+            },
+            P_CA: {
+                ru: { name: "Кале", pron: "Кале", desc: "Портовый город на севере Франции в самом узком месте пролива Ла-Манш." },
+                en: { name: "Calais", pron: "ka-LAY", desc: "Port city in northern France at the closest point to England." },
+                nl: { name: "Plus TOPO (CA)", pron: "Ca-lais", desc: "Havenstad in Noord-Frankrijk waar Het Kanaal het smalst is." }
+            },
+            P_SB: {
+                ru: { name: "Страсбург", pron: "Стратсбюрх", desc: "Город на востоке Франции на границе с Германией." },
+                en: { name: "Strasbourg", pron: "STRAHTS-burkh", desc: "City in eastern France on the border with Germany." },
+                nl: { name: "Plus TOPO (SB)", pron: "Straats-burg", desc: "Stad in het oosten van Frankrijk aan de grens met Duitsland." }
+            },
+            P_FF: {
+                ru: { name: "Франкфурт", pron: "Франкфурт", desc: "Крупный финансовый и транспортный центр в Германии." },
+                en: { name: "Frankfurt", pron: "FRANK-furt", desc: "Major city in central-western Germany." },
+                nl: { name: "Plus TOPO (FF)", pron: "Frank-furt", desc: "Belangrijke stad in het midden-westen van Duitsland." }
+            }
+        };
+
+        // פונקציות עזר לשליפת טקסט מתורגם עבור כל פריט במפה לפי השפה הפעילה
+        function getItemLocalName(item) {
+            if (currentLang === 'he') return item.he;
+            const tr = itemI18n[item.id] && itemI18n[item.id][currentLang];
+            return tr ? tr.name : item.he;
+        }
+        function getItemPron(item) {
+            if (currentLang === 'he') return item.pron;
+            const tr = itemI18n[item.id] && itemI18n[item.id][currentLang];
+            return tr ? tr.pron : item.pron;
+        }
+        function getItemDesc(item) {
+            if (currentLang === 'he') return item.desc;
+            const tr = itemI18n[item.id] && itemI18n[item.id][currentLang];
+            return tr ? tr.desc : item.desc;
+        }
+        function getItemCatLocal(item) {
+            const c = catTranslations[item.cat];
+            return c ? (c[currentLang] || item.catHe) : item.catHe;
+        }
+
+        // החלפת שפת האפליקציה (he, ru, en, nl)
+        function setAppLanguage(lang) {
+            if (!uiTranslations[lang]) return;
+            currentLang = lang;
+            try { localStorage.setItem('topo_app_lang', lang); } catch (e) {}
+
+            const t = uiTranslations[lang];
+            document.documentElement.lang = lang;
+            document.documentElement.dir = t.dir;
+
+            // הדגשת כפתור השפה הפעיל
+            ['he', 'ru', 'en', 'nl'].forEach(l => {
+                const btn = document.getElementById('lang-btn-' + l);
+                if (!btn) return;
+                if (l === lang) {
+                    btn.className = "lang-switch-btn px-2 py-1 rounded-lg bg-amber-500 text-slate-950 font-extrabold transition";
+                } else {
+                    btn.className = "lang-switch-btn px-2 py-1 rounded-lg text-slate-300 hover:text-white transition";
+                }
+            });
+
+            // עדכון טקסטים קבועים בממשק
+            document.getElementById('hdr-subtitle').textContent = t.hdrSub;
+            document.getElementById('nav-tab-map').textContent = t.navMap;
+            document.getElementById('nav-tab-vocab').textContent = t.navVocab;
+            document.getElementById('nav-tab-fc').textContent = t.navFc;
+            document.getElementById('nav-tab-quiz').textContent = t.navQuiz;
+
+            document.getElementById('btn-mode-explore').textContent = t.modeExplore;
+            document.getElementById('btn-mode-find').textContent = t.modeFind;
+            document.getElementById('btn-mode-name').textContent = t.modeName;
+
+            document.getElementById('btn-zoom-all').textContent = t.zoomAll;
+            document.getElementById('btn-zoom-belgium').textContent = t.zoomBelgium;
+            document.getElementById('btn-zoom-uk').textContent = t.zoomUk;
+            document.getElementById('btn-open-original').textContent = t.openOriginal;
+
+            document.getElementById('lbl-filter-cat').textContent = t.filterCatLabel;
+            const filterSel = document.getElementById('map-filter-select');
+            filterSel.options[0].textContent = t.filterAll;
+            filterSel.options[1].textContent = t.filterHard;
+            filterSel.options[2].textContent = t.filterLanden;
+            filterSel.options[3].textContent = t.filterHoofdsteden;
+            filterSel.options[4].textContent = t.filterSteden;
+            filterSel.options[5].textContent = t.filterWateren;
+            filterSel.options[6].textContent = t.filterGebieden;
+            filterSel.options[7].textContent = t.filterGebergten;
+            filterSel.options[8].textContent = t.filterPlus;
+
+            const tileSel = document.getElementById('map-tile-select');
+            tileSel.options[0].textContent = t.tileVector;
+            tileSel.options[1].textContent = t.tileGray;
+            tileSel.options[2].textContent = t.tilePhysical;
+            tileSel.options[3].textContent = t.tileOsm;
+            tileSel.options[4].textContent = t.tileCustom;
+
+            document.getElementById('txt-drag-pins').textContent = t.dragPins;
+            document.getElementById('txt-show-labels').textContent = t.showLabels;
+
+            document.getElementById('map-legend-items').innerHTML = `
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-600 inline-block"></span> ${t.legLanden}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-rose-600 inline-block"></span> ${t.legHoofdsteden}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-purple-600 inline-block"></span> ${t.legSteden}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-full bg-sky-600 inline-block"></span> ${t.legWateren}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-emerald-600 inline-block"></span> ${t.legGebieden}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-amber-900 inline-block"></span> ${t.legGebergten}</span>
+                <span class="inline-flex items-center gap-1 font-bold text-slate-700"><span class="w-3 h-3 rounded-sm bg-indigo-600 inline-block"></span> Plus TOPO</span>
+            `;
+            document.getElementById('map-legend-hint').textContent = t.legHint;
+
+            document.getElementById('lbl-dutch-name').textContent = t.lblDutchName;
+            document.getElementById('txt-speak-btn').textContent = t.btnSpeak;
+            document.getElementById('txt-center-btn').textContent = t.btnCenter;
+            document.getElementById('lbl-how-to-pron').textContent = t.lblPron;
+            document.getElementById('lbl-in-local-lang').textContent = t.lblLocalLang;
+            document.getElementById('lbl-map-score').textContent = t.lblScore;
+            document.getElementById('btn-map-quiz-speak').textContent = t.btnSpeakQuiz;
+            document.getElementById('btn-map-quiz-next').textContent = t.btnNext;
+            document.getElementById('lbl-sidebar-list-title').textContent = t.sidebarListTitle;
+            document.getElementById('sidebar-quick-search').placeholder = t.quickSearchPlaceholder;
+            
+            if (selectedItem) updateHardItemBtn();
+
+            // לשונית 2
+            document.getElementById('vocab-sentences-heading').textContent = t.sentencesHeading;
+            document.getElementById('vocab-dict-heading').textContent = t.dictHeading;
+            document.getElementById('vocab-tables-heading').textContent = t.tablesHeading;
+            document.getElementById('full-table-search').placeholder = t.tableSearchPlaceholder;
+
+            // לשונית 3 (כרטיסיות)
+            document.getElementById('fc-main-heading').textContent = t.fcHeading;
+            document.getElementById('btn-fc-shuffle').textContent = t.fcShuffle;
+            document.getElementById('fc-front-prompt').textContent = t.fcFrontPrompt;
+            document.getElementById('fc-front-hint').textContent = t.fcFrontHint;
+            document.getElementById('fc-back-label').textContent = t.fcBackLabel;
+            document.getElementById('btn-fc-speak').textContent = t.fcSpeakAgain;
+            document.getElementById('fc-back-hint').textContent = t.fcBackHint;
+            document.getElementById('btn-fc-prev').textContent = t.fcPrev;
+            document.getElementById('btn-fc-next').textContent = t.fcNext;
+
+            const fcSel = document.getElementById('fc-cat-select');
+            fcSel.options[0].textContent = t.filterAll;
+            fcSel.options[1].textContent = t.filterHard;
+            fcSel.options[2].textContent = t.filterLanden;
+            fcSel.options[3].textContent = t.filterHoofdsteden;
+            fcSel.options[4].textContent = t.filterSteden;
+            fcSel.options[5].textContent = t.filterWateren;
+            fcSel.options[6].textContent = t.filterGebieden;
+            fcSel.options[7].textContent = t.filterGebergten;
+            fcSel.options[8].textContent = t.filterPlus;
+
+            // לשונית 4 (מבחן)
+            document.getElementById('btn-qmode-mc').textContent = t.qmodeMc;
+            document.getElementById('btn-qmode-spell').textContent = t.qmodeSpell;
+            document.getElementById('lbl-wq-score').textContent = t.lblScore;
+            document.getElementById('btn-wq-speak').textContent = t.wqSpeakHint;
+            document.getElementById('wq-spell-input').placeholder = t.wqSpellPlaceholder;
+            document.getElementById('btn-wq-check-spell').textContent = t.wqCheckBtn;
+            document.getElementById('btn-wq-next').textContent = t.wqNextBtn;
+
+            const qzSel = document.getElementById('quiz-cat-filter');
+            qzSel.options[0].textContent = t.filterAll;
+            qzSel.options[1].textContent = t.filterHard;
+            qzSel.options[2].textContent = t.filterLanden;
+            qzSel.options[3].textContent = t.filterHoofdsteden;
+            qzSel.options[4].textContent = t.filterSteden;
+            qzSel.options[5].textContent = t.filterWateren;
+            qzSel.options[6].textContent = t.filterGebieden;
+            qzSel.options[7].textContent = t.filterGebergten;
+            qzSel.options[8].textContent = t.filterPlus;
+
+            // רינדור מחדש של כל החלקים הדינמיים לפי השפה החדשה
+            if (selectedItem) setSelectedExploreItem(selectedItem, false);
+            if (mapInteractionMode !== 'explore') nextMapQuizTurn();
+            renderVocabAndTables();
+            renderFlashcard();
+            loadNextWrittenQuestion();
+        }
+
+        // 2. כל 48 הפריטים מתוך דף העבודה עם קואורדינטות אמיתיות (lat/lng) + מיקום באחוזים (xPct/yPct) על דף המבחן המקורי!
+        const topoData = [
+            // --- Landen (A-G) ---
+            { id: "L_A", code: "A", nl: "Ierland", he: "אירלנד", pron: "אִירְלַנְד", cat: "Landen", catHe: "מדינה", lat: 53.35, lng: -8.1, xPct: 14.0, yPct: 36.2, desc: "מדינת אי ממערב לבריטניה. עיר הבירה שלה היא דבלין (1)." },
+            { id: "L_B", code: "B", nl: "Verenigd Koninkrijk", he: "הממלכה המאוחדת (בריטניה)", pron: "פֶרְאֵיינִיחְד קוֹנִינְקְרַייק", cat: "Landen", catHe: "מדינה", lat: 54.7, lng: -2.2, xPct: 46.2, yPct: 33.0, desc: "מסומנת במפה בקו מקווקו המקיף את אנגליה, סקוטלנד, ויילס וצפון אירלנד. בירתה לונדון (2)." },
+            { id: "L_C", code: "C", nl: "Nederland", he: "הולנד", pron: "נֵדֶרְלַנְד", cat: "Landen", catHe: "מדינה", lat: 52.25, lng: 5.45, xPct: 61.3, yPct: 42.8, desc: "הולנד! גובלת בים הצפוני (c), בגרמניה (D) ובבלגיה (E)." },
+            { id: "L_D", code: "D", nl: "Duitsland", he: "גרמניה", pron: "דַאוּיטְסְלַנְד", cat: "Landen", catHe: "מדינה", lat: 51.1, lng: 10.5, xPct: 78.2, yPct: 49.0, desc: "מדינה גדולה מזרחית להולנד. בירתה ברלין (5)." },
+            { id: "L_E", code: "E", nl: "België", he: "בלגיה", pron: "בֶּלְחִיֶה", cat: "Landen", catHe: "מדינה", lat: 50.65, lng: 4.65, xPct: 57.2, yPct: 51.5, desc: "שכנתה של הולנד מדרום. מופיעה גם במפת ההגדלה המיוחדת. בירתה בריסל (3)." },
+            { id: "L_F", code: "F", nl: "Luxemburg", he: "לוקסמבורג (מדינה)", pron: "לוּקְסֶמְבּוּרְך", cat: "Landen", catHe: "מדינה", lat: 49.82, lng: 6.12, xPct: 62.9, yPct: 53.5, desc: "מדינה קטנה בין בלגיה, גרמניה וצרפת." },
+            { id: "L_G", code: "G", nl: "Frankrijk", he: "צרפת", pron: "פְרַנְקְרַייק", cat: "Landen", catHe: "מדינה", lat: 46.6, lng: 2.4, xPct: 47.0, yPct: 71.3, desc: "המדינה הגדולה במערב אירופה. בירתה פריז (6 - Parijs)." },
+
+            // --- Hoofdsteden (1-6) ---
+            { id: "H_1", code: "1", nl: "Dublin", he: "דבלין (בירת אירלנד)", pron: "דַאבְּלִין", cat: "Hoofdsteden", catHe: "עיר בירה", lat: 53.35, lng: -6.26, xPct: 18.8, yPct: 37.3, desc: "עיר הבירה של אירלנד (A), בחוף המזרחי של האי." },
+            { id: "H_2", code: "2", nl: "Londen", he: "לונדון (בירת בריטניה)", pron: "לוֹנְדֶן", cat: "Hoofdsteden", catHe: "עיר בירה", lat: 51.51, lng: -0.13, xPct: 40.2, yPct: 46.2, desc: "עיר הבירה של הממלכה המאוחדת (B), שוכנת על נהר התמזה (f)." },
+            { id: "H_3", code: "3", nl: "Brussel", he: "בריסל (בירת בלגיה)", pron: "בְּרוּסֶל", cat: "Hoofdsteden", catHe: "עיר בירה", lat: 50.85, lng: 4.35, xPct: 57.0, yPct: 48.8, desc: "עיר הבירה של בלגיה (E). מופיעה גם במפת ההגדלה של בלגיה." },
+            { id: "H_4", code: "4", nl: "Luxemburg", he: "לוקסמבורג (עיר הבירה)", pron: "לוּקְסֶמְבּוּרְך", cat: "Hoofdsteden", catHe: "עיר בירה", lat: 49.61, lng: 6.13, xPct: 64.6, yPct: 55.6, desc: "עיר הבירה של מדינת לוקסמבורג (F)." },
+            { id: "H_5", code: "5", nl: "Berlijn", he: "ברלין (בירת גרמניה)", pron: "בֶּרְלַיין", cat: "Hoofdsteden", catHe: "עיר בירה", lat: 52.52, lng: 13.40, xPct: 88.0, yPct: 39.8, desc: "עיר הבירה של גרמניה (D), בצפון-מזרח המדינה." },
+            { id: "H_6", code: "6", nl: "Parijs", he: "פריז (בירת צרפת)", pron: "פָּרַייס", cat: "Hoofdsteden", catHe: "עיר בירה", lat: 48.86, lng: 2.35, xPct: 49.5, yPct: 58.6, desc: "עיר הבירה של צרפת (G), על נהר הסן (j - Seine)." },
+
+            // --- Steden (7-15) ---
+            { id: "S_7", code: "7", nl: "Glasgow", he: "גלאזגו", pron: "חְלַאסְגוֹ", cat: "Steden", catHe: "עיר", lat: 55.86, lng: -4.25, xPct: 28.0, yPct: 24.5, desc: "עיר גדולה בסקוטלנד (H - Schotland)." },
+            { id: "S_8", code: "8", nl: "Liverpool", he: "ליברפול", pron: "לִיבֶרְפּוּל", cat: "Steden", catHe: "עיר", lat: 53.41, lng: -2.99, xPct: 31.8, yPct: 36.2, desc: "עיר נמל בצפון-מערב אנגליה (I)." },
+            { id: "S_9", code: "9", nl: "Antwerpen", he: "אנטוורפן", pron: "אַנְטְווֶרְפֶּן", cat: "Steden", catHe: "עיר", lat: 51.22, lng: 4.40, xPct: 16.5, yPct: 85.0, desc: "עיר נמל גדולה בצפון בלגיה (מסומנת כ-9 במפת ההגדלה של בלגיה) על נהר הסכלדה (g)." },
+            { id: "S_10", code: "10", nl: "Keulen", he: "קלן", pron: "קוֹלֶן", cat: "Steden", catHe: "עיר", lat: 50.94, lng: 6.96, xPct: 67.3, yPct: 49.0, desc: "עיר גדולה במערב גרמניה על נהר הריין (i - Rijn)." },
+            { id: "S_11", code: "11", nl: "Hamburg", he: "המבורג", pron: "הַמְבּוּרְך", cat: "Steden", catHe: "עיר", lat: 53.55, lng: 10.00, xPct: 77.2, yPct: 34.5, desc: "עיר נמל גדולה בצפון גרמניה." },
+            { id: "S_12", code: "12", nl: "München", he: "מינכן", pron: "מִינְכֶן", cat: "Steden", catHe: "עיר", lat: 48.14, lng: 11.58, xPct: 85.0, yPct: 61.3, desc: "עיר גדולה בדרום גרמניה, מצפון להרי האלפים (m)." },
+            { id: "S_13", code: "13", nl: "Bordeaux", he: "בורדו", pron: "בּוֹרְדוֹ", cat: "Steden", catHe: "עיר", lat: 44.84, lng: -0.58, xPct: 37.5, yPct: 79.2, desc: "עיר בדרום-מערב צרפת, קרובה לאוקיינוס האטלנטי (a)." },
+            { id: "S_14", code: "14", nl: "Lyon", he: "ליון", pron: "לִיוֹן", cat: "Steden", catHe: "עיר", lat: 45.76, lng: 4.84, xPct: 57.5, yPct: 74.5, desc: "עיר מרכזית בדרום-מזרח צרפת על נהר הרון (k - Rhône)." },
+            { id: "S_15", code: "15", nl: "Marseille", he: "מרסיי", pron: "מַרְסֵיי", cat: "Steden", catHe: "עיר", lat: 43.30, lng: 5.37, xPct: 60.5, yPct: 87.8, desc: "עיר נמל בדרום צרפת לחוף הים התיכון (e)." },
+
+            // --- Wateren (a-k) ---
+            { id: "W_a", code: "a", nl: "Atlantische Oceaan", he: "האוקיינוס האטלנטי", pron: "אַטְלַנְטִישֶׁה אוֹצֵאָן", cat: "Wateren", catHe: "אוקיינוס", lat: 47.0, lng: -6.8, xPct: 10.2, yPct: 68.0, desc: "האוקיינוס הגדול ממערב לאירלנד, בריטניה וצרפת." },
+            { id: "W_b", code: "b", nl: "Het Kanaal", he: "תעלת למאנש", pron: "הֶט קַנָאל", cat: "Wateren", catHe: "מצר ים", lat: 50.15, lng: -1.8, xPct: 35.8, yPct: 53.2, desc: "מצר הים המפריד בין אנגליה לצרפת." },
+            { id: "W_c", code: "c", nl: "Noordzee", he: "הים הצפוני", pron: "נוֹרְד-זֵיי", cat: "Wateren", catHe: "ים", lat: 55.0, lng: 3.2, xPct: 56.2, yPct: 26.5, desc: "הים שבין בריטניה, הולנד, גרמניה ודנמרק." },
+            { id: "W_d", code: "d", nl: "Oostzee", he: "הים הבלטי (הים המזרחי)", pron: "אוֹסְט-זֵיי", cat: "Wateren", catHe: "ים", lat: 54.65, lng: 13.2, xPct: 92.0, yPct: 27.8, desc: "הים בצפון-מזרח גרמניה ומזרחית לדנמרק (Oost = מזרח)." },
+            { id: "W_e", code: "e", nl: "Middellandse Zee", he: "הים התיכון", pron: "מִידֶל-לַנְדְסֶה זֵיי", cat: "Wateren", catHe: "ים", lat: 42.1, lng: 5.2, xPct: 64.2, yPct: 95.5, desc: "הים שמדרום לצרפת." },
+            { id: "W_f", code: "f", nl: "Theems", he: "נהר התמזה", pron: "טֵיימְס", cat: "Wateren", catHe: "נהר", lat: 51.55, lng: -1.15, xPct: 35.5, yPct: 47.0, desc: "הנהר בדרום אנגליה שעובר דרך לונדון (2)." },
+            { id: "W_g", code: "g", nl: "Schelde", he: "נהר הסכלדה", pron: "סְכֶלְדֶה", cat: "Wateren", catHe: "נהר", lat: 50.98, lng: 3.75, xPct: 6.2, yPct: 93.8, desc: "נהר העובר במערב בלגיה (דרך אנטוורפן 9) להולנד. מופיע במפת ההגדלה של בלגיה!" },
+            { id: "W_h", code: "h", nl: "Maas", he: "נהר המאס", pron: "מָאס", cat: "Wateren", catHe: "נהר", lat: 49.45, lng: 5.15, xPct: 62.2, yPct: 58.6, desc: "נהר הזורם מצרפת דרך בלגיה (ולוניה) להולנד." },
+            { id: "W_i", code: "i", nl: "Rijn", he: "נהר הריין", pron: "רַיין", cat: "Wateren", catHe: "נהר", lat: 50.15, lng: 7.65, xPct: 70.0, yPct: 52.8, desc: "נהר מרכזי הזורם מהאלפים דרך מערב גרמניה (קלן 10) לתוך הולנד." },
+            { id: "W_j", code: "j", nl: "Seine", he: "נהר הסן", pron: "סֵן", cat: "Wateren", catHe: "נהר", lat: 49.25, lng: 1.35, xPct: 45.5, yPct: 56.5, desc: "הנהר בצפון צרפת שעובר בפריז (6) ונשפך לתעלת למאנש." },
+            { id: "W_k", code: "k", nl: "Rhône", he: "נהר הרון", pron: "רוֹן", cat: "Wateren", catHe: "נהר", lat: 44.55, lng: 4.75, xPct: 57.6, yPct: 80.5, desc: "נהר בדרום-מזרח צרפת העובר בליון (14) ונשפך לים התיכון." },
+
+            // --- Gebieden (H-L) ---
+            { id: "G_H", code: "H", nl: "Schotland", he: "סקוטלנד", pron: "סְכוֹטְלַנְד", cat: "Gebieden", catHe: "אזור / חבל", lat: 56.9, lng: -4.2, xPct: 29.0, yPct: 20.2, desc: "החלק הצפוני של האי הבריטי." },
+            { id: "G_I", code: "I", nl: "Engeland", he: "אנגליה", pron: "אֶנְגֶלַנְד", cat: "Gebieden", catHe: "אזור / חבל", lat: 52.55, lng: -1.4, xPct: 36.0, yPct: 38.8, desc: "החלק המרכזי והדרומי של האי הבריטי." },
+            { id: "G_J", code: "J", nl: "Ruhrgebied", he: "חבל הרוהר", pron: "רוּר-חֶבִּיד", cat: "Gebieden", catHe: "אזור תעשייה", lat: 51.52, lng: 7.25, xPct: 66.8, yPct: 45.5, desc: "אזור עירוני ותעשייתי חשוב במערב גרמניה, קרוב להולנד." },
+            { id: "G_K", code: "K", nl: "Vlaanderen", he: "פלנדריה", pron: "פְלַאנְדֶרֶן", cat: "Gebieden", catHe: "אזור בבלגיה", lat: 51.05, lng: 3.25, xPct: 12.8, yPct: 88.2, desc: "החצי הצפוני של בלגיה שבו מדברים הולנדית (מופיע במפת ההגדלה בפינה השמאלית-תחתונה)." },
+            { id: "G_L", code: "L", nl: "Wallonië", he: "ולוניה", pron: "וַאלוֹנִיֶה", cat: "Gebieden", catHe: "אזור בבלגיה", lat: 50.32, lng: 4.45, xPct: 17.8, yPct: 92.2, desc: "החצי הדרומי של בלגיה שבו מדברים צרפתית (מופיע במפת ההגדלה בפינה השמאלית-תחתונה)." },
+
+            // --- Gebergten (l-n) ---
+            { id: "M_l", code: "l", nl: "Ardennen", he: "הרי הארדנים", pron: "אַרְדֶנֶן", cat: "Gebergten", catHe: "רכס הרים", lat: 50.02, lng: 5.45, xPct: 24.2, yPct: 96.2, desc: "אזור גבעות והרים מיוער בדרום-מזרח בלגיה (אות l קטנה במפת ההגדלה של בלגיה)." },
+            { id: "M_m", code: "m", nl: "Alpen", he: "הרי האלפים", pron: "אַלְפֶּן", cat: "Gebergten", catHe: "רכס הרים", lat: 46.3, lng: 8.6, xPct: 74.5, yPct: 68.8, desc: "רכס ההרים הגבוה באירופה (בדרום-מזרח צרפת, שווייץ, איטליה ואוסטריה)." },
+            { id: "M_n", code: "n", nl: "Pyreneeën", he: "הרי הפירנאים", pron: "פִּירֶנֵייאֶן", cat: "Gebergten", catHe: "רכס הרים", lat: 42.65, lng: 0.6, xPct: 39.2, yPct: 90.0, desc: "רכס ההרים המהווה גבול בין דרום צרפת לספרד." },
+
+            // --- Plus TOPO ---
+            { id: "P_NI", code: "NI", nl: "Noord-Ierland", he: "צפון אירלנד", pron: "נוֹרְד-אִירְלַנְד", cat: "Plus TOPO", catHe: "Plus TOPO", lat: 54.65, lng: -6.6, xPct: 19.2, yPct: 29.8, desc: "החלק הצפוני של האי אירלנד, שייך לממלכה המאוחדת (B)." },
+            { id: "P_WA", code: "WA", nl: "Wales", he: "ויילס", pron: "וֵיילְס", cat: "Plus TOPO", catHe: "Plus TOPO", lat: 52.3, lng: -3.7, xPct: 27.2, yPct: 43.2, desc: "חבל ארץ במערב בריטניה, שייך לממלכה המאוחדת." },
+            { id: "P_NM", code: "NM", nl: "Normandië", he: "נורמנדי", pron: "נוֹרְמַנְדִיֶה", cat: "Plus TOPO", catHe: "Plus TOPO", lat: 49.15, lng: -0.5, xPct: 39.2, yPct: 56.8, desc: "חבל ארץ בצפון-מערב צרפת לחוף תעלת למאנש." },
+            { id: "P_BR", code: "BR", nl: "Bretagne", he: "ברטאן", pron: "בְּרֶטַאנְיֶה", cat: "Plus TOPO", catHe: "Plus TOPO", lat: 48.2, lng: -3.0, xPct: 27.2, yPct: 60.5, desc: "חצי אי גדול בצפון-מערב צרפת הבולט לאוקיינוס האטלנטי." },
+            { id: "P_CA", code: "CA", nl: "Calais", he: "קאלה", pron: "קַאלֵה", cat: "Plus TOPO", catHe: "Plus TOPO", lat: 50.95, lng: 1.86, xPct: 48.0, yPct: 50.2, desc: "עיר נמל בצפון צרפת בנקודה הקרובה ביותר לאנגליה." },
+            { id: "P_SB", code: "SB", nl: "Straatsburg", he: "שטרסבורג", pron: "סְטְרָאטְסְבּוּרְך", cat: "Plus TOPO", catHe: "Plus TOPO", lat: 48.57, lng: 7.75, xPct: 68.0, yPct: 59.5, desc: "עיר במזרח צרפת על גבול גרמניה." },
+            { id: "P_FF", code: "FF", nl: "Frankfurt", he: "פרנקפורט", pron: "פְרַנְקְפוּרְט", cat: "Plus TOPO", catHe: "Plus TOPO", lat: 50.11, lng: 8.68, xPct: 74.2, yPct: 52.8, desc: "עיר מרכזית במערב-מרכז גרמניה." }
+        ];
+
+        // טעינת מיקומים מותאמים אישית לתמונת המבחן אם נשמרו ב-localStorage
+        try {
+            const savedPos = JSON.parse(localStorage.getItem('topo_custom_xy_v1') || '{}');
+            topoData.forEach(item => {
+                if (savedPos[item.id]) {
+                    item.xPct = savedPos[item.id].xPct;
+                    item.yPct = savedPos[item.id].yPct;
+                }
+            });
+        } catch (e) {}
+
+        // 3. מצב האפליקציה
+        let map = null;
+        let currentTileLayer = null;
+        let vectorCountriesLayer = null;
+        let markersDict = {};
+        let selectedItem = topoData[2]; // Nederland
+        let mapInteractionMode = 'explore'; // 'explore' | 'find' | 'name'
+        let isWorksheetImageActive = false;
+        let mapQuizTarget = null;
+        let mapQuizScore = 0;
+        let mapQuizTotal = 0;
+        let mapQuizLocked = false;
+
+        // מצב כרטיסיות
+        let fcDeck = [...topoData];
+        let fcIndex = 0;
+        let fcFlipped = false;
+
+        // מערכת פריטים קשים (דורש חזרה)
+        let hardItems = JSON.parse(localStorage.getItem('topo_hard_items_v1') || '[]');
+
+        // מצב מבחן וכתיב
+        let wqMode = 'mc'; // 'mc' | 'spell'
+        let wqCurrent = null;
+        let wqScore = 0;
+        let wqTotal = 0;
+        let wqAnswered = false;
+
+        // פונקציית הקראה קולית בהולנדית (Web Speech API)
+        function speakDutch(text) {
+            if (!('speechSynthesis' in window)) return;
+            try {
+                window.speechSynthesis.cancel();
+                const utter = new SpeechSynthesisUtterance(text);
+                utter.lang = 'nl-NL';
+                utter.rate = 0.88;
+                const voices = window.speechSynthesis.getVoices();
+                const nlVoice = voices.find(v => v.lang && v.lang.toLowerCase().startsWith('nl'));
+                if (nlVoice) utter.voice = nlVoice;
+                window.speechSynthesis.speak(utter);
+            } catch (e) {}
+        }
+
+        // ==========================================================
+        // אתחול מפת Leaflet אמיתית ללא שום API KEY (Esri + OSM + GeoJSON)
+        // ==========================================================
+        const tileUrls = {
+            esri_gray: 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+            esri_physical: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Physical_Map/MapServer/tile/{z}/{y}/{x}',
+            osm: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
+        };
+
+        function initLeafletMap() {
+            map = L.map('leaflet-map', {
+                center: [50.2, 4.2],
+                zoom: 5,
+                minZoom: 4,
+                maxZoom: 10,
+                scrollWheelZoom: false,
+                zoomControl: false // מבוטל כדי למנוע את קפיצת ה-iframe של Google Sites
+            });
+
+            // הפעלת כפתורי הזום המותאמים אישית (במקום אלו של Leaflet)
+            document.getElementById('custom-zoom-in').addEventListener('click', () => map.zoomIn());
+            document.getElementById('custom-zoom-out').addEventListener('click', () => map.zoomOut());
+
+            // ברירת מחדל: שכבת Esri Light Gray נקייה (חינמית לחלוטין ללא API Key) + גבולות מדינות מודגשים
+            currentTileLayer = L.tileLayer(tileUrls.esri_gray, {
+                attribution: '&copy; Esri, HERE, Garmin, OpenStreetMap',
+                maxZoom: 16
+            }).addTo(map);
+
+            // טעינת פוליגונים וקטוריים נקיים של מדינות אירופה (כמו באטלס בית ספר)
+            fetch('https://raw.githubusercontent.com/leakyMirror/map-of-europe/master/GeoJSON/europe.geojson')
+                .then(res => res.json())
+                .then(geoData => {
+                    const studyCountries = ['Ireland', 'United Kingdom', 'Netherlands', 'Belgium', 'Luxembourg', 'France', 'Germany'];
+                    vectorCountriesLayer = L.geoJSON(geoData, {
+                        style: function(feature) {
+                            const name = feature.properties.NAME || '';
+                            const isTarget = studyCountries.includes(name);
+                            return {
+                                fillColor: isTarget ? '#fef9c3' : '#e2e8f0',
+                                weight: isTarget ? 1.8 : 1,
+                                opacity: 1,
+                                color: isTarget ? '#475569' : '#94a3b8',
+                                fillOpacity: isTarget ? 0.65 : 0.4
+                            };
+                        },
+                        interactive: false
+                    }).addTo(map);
+                })
+                .catch(() => {});
+
+            drawGeographicOverlays();
+            renderLeafletMarkers();
+
+            // בדיקה אם המשתמש כבר שמר תמונת מבחן ב-localStorage
+            const savedImg = localStorage.getItem('topo_custom_worksheet_img');
+            if (savedImg) {
+                document.getElementById('worksheet-img-el').src = savedImg;
+            } else {
+                // ניסיון לטעון אוטומטית מהקישור של Google Drive שסופק
+                const defaultDriveThumb = 'https://drive.google.com/thumbnail?id=10ptLF19a47faNV651q3HNMY0-qi2aZ87&sz=w1600';
+                document.getElementById('worksheet-img-el').src = defaultDriveThumb;
+            }
+        }
+
+        // שרטוט נהרות, רכסי הרים, חבל הרוהר והקו המקווקו סביב בריטניה כמו בדף העבודה
+        function drawGeographicOverlays() {
+            // 1. קו מקווקו סביב הממלכה המאוחדת (B - Verenigd Koninkrijk)
+            const ukBoundary = [
+                [59.2, -4.5], [58.5, -1.2], [55.0, 0.5], [51.2, 1.9],
+                [49.8, -5.5], [51.8, -5.8], [53.8, -5.2], [54.0, -6.5],
+                [54.5, -8.2], [55.5, -7.0], [57.8, -7.5], [59.2, -4.5]
+            ];
+            L.polyline(ukBoundary, {
+                color: '#475569',
+                weight: 2,
+                dashArray: '6, 6',
+                interactive: false
+            }).addTo(map);
+
+            // 2. נהרות מדויקים (f: Theems, g: Schelde, h: Maas, i: Rijn, j: Seine, k: Rhône)
+            const rivers = [
+                { name: 'Theems', coords: [[51.7, -1.8], [51.6, -1.2], [51.48, -0.5], [51.50, 0.0], [51.48, 0.6]] },
+                { name: 'Schelde', coords: [[50.0, 3.2], [50.45, 3.5], [50.8, 3.6], [51.05, 3.72], [51.22, 4.40], [51.42, 4.15], [51.45, 3.55]] },
+                { name: 'Maas', coords: [[48.0, 5.6], [49.2, 5.4], [50.1, 4.9], [50.46, 4.86], [50.64, 5.57], [51.1, 5.8], [51.75, 5.0], [51.9, 4.1]] },
+                { name: 'Rijn', coords: [[47.55, 7.6], [48.57, 7.78], [49.5, 8.4], [50.0, 8.2], [50.36, 7.6], [50.94, 6.96], [51.45, 6.7], [51.85, 6.1], [51.95, 4.1]] },
+                { name: 'Seine', coords: [[47.8, 4.5], [48.3, 3.5], [48.86, 2.35], [49.44, 1.09], [49.48, 0.12]] },
+                { name: 'Rhône', coords: [[46.2, 6.1], [45.8, 5.4], [45.76, 4.84], [44.9, 4.8], [43.9, 4.8], [43.35, 4.8]] }
+            ];
+            rivers.forEach(r => {
+                L.polyline(r.coords, {
+                    color: '#0284c7',
+                    weight: 3.2,
+                    opacity: 0.85,
+                    interactive: false
+                }).addTo(map);
+            });
+
+            // 3. רכסי הרים (l: Ardennen, m: Alpen, n: Pyreneeën)
+            // Ardennen (l)
+            L.polygon([
+                [50.45, 4.8], [50.4, 6.0], [49.75, 6.0], [49.8, 4.7]
+            ], { color: '#78350f', fillColor: '#92400e', fillOpacity: 0.28, weight: 1.5, dashArray: '4,4', interactive: false }).addTo(map);
+
+            // Alpen (m)
+            L.polygon([
+                [44.2, 5.8], [45.8, 6.2], [47.3, 8.5], [47.6, 12.8],
+                [46.4, 13.5], [45.6, 9.5], [44.8, 7.2], [44.0, 6.8]
+            ], { color: '#78350f', fillColor: '#92400e', fillOpacity: 0.28, weight: 1.5, dashArray: '4,4', interactive: false }).addTo(map);
+
+            // Pyreneeën (n)
+            L.polygon([
+                [43.3, -1.7], [42.9, 0.8], [42.45, 3.1], [42.1, 2.8], [42.4, 0.2], [42.9, -1.8]
+            ], { color: '#78350f', fillColor: '#92400e', fillOpacity: 0.28, weight: 1.5, dashArray: '4,4', interactive: false }).addTo(map);
+
+            // 4. חבל הרוהר (J - Ruhrgebied)
+            L.polygon([
+                [51.72, 6.65], [51.72, 7.85], [51.32, 7.85], [51.32, 6.65]
+            ], { color: '#059669', fillColor: '#10b981', fillOpacity: 0.22, weight: 1.5, dashArray: '3,3', interactive: false }).addTo(map);
+
+            // 5. קו ההפרדה בבלגיה בין פלנדריה (K) לוולוניה (L)
+            L.polyline([
+                [50.75, 2.85], [50.74, 3.8], [50.72, 4.5], [50.76, 5.7]
+            ], { color: '#059669', weight: 2, dashArray: '5, 5', interactive: false }).addTo(map);
+        }
+
+        function getCategoryPinClass(cat) {
+            if (cat === 'Plus TOPO') return 'pin-Plus';
+            return 'pin-' + cat;
+        }
+
+        // רינדור כל 48 הסימונים בגודל קבוע של 28x28 פיקסלים (ללא שום קפיצה!)
+        function renderLeafletMarkers() {
+            Object.values(markersDict).forEach(m => map.removeLayer(m));
+            markersDict = {};
+
+            const filterCat = document.getElementById('map-filter-select').value;
+            const showLabels = document.getElementById('chk-show-labels').checked && mapInteractionMode === 'explore';
+
+            const visibleItems = topoData.filter(item => filterCat === 'all' || (filterCat === 'hard' && hardItems.includes(item.id)) || item.cat === filterCat);
+
+            visibleItems.forEach(item => {
+                const isSelected = selectedItem && selectedItem.id === item.id;
+                const pinClass = getCategoryPinClass(item.cat);
+
+                // במצב "זהה את הסימון", הסימון הנשאל מהבהב בכתום
+                const isTargetHighlight = (mapInteractionMode === 'name' && mapQuizTarget && mapQuizTarget.id === item.id);
+
+                const html = `
+                    <div id="pin-dom-${item.id}" class="topo-pin ${pinClass} ${(isSelected || isTargetHighlight) ? 'selected-pin' : ''}">
+                        <span>${item.code}</span>
+                        ${showLabels ? `<span class="topo-pin-label">${item.nl}</span>` : ''}
+                    </div>
+                `;
+
+                const icon = L.divIcon({
+                    className: 'topo-marker-wrapper',
+                    html: html,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                });
+
+                const marker = L.marker([item.lat, item.lng], { icon: icon }).addTo(map);
+                marker.on('click', () => handleMarkerClick(item));
+                markersDict[item.id] = marker;
+            });
+
+            renderWorksheetImagePins();
+            renderSidebarQuickList();
+        }
+
+        // רינדור הסימונים על גבי תמונת דף המבחן המקורי (כשמצב תמונת מבחן פעיל)
+        function renderWorksheetImagePins() {
+            const container = document.getElementById('worksheet-pins-layer');
+            if (!container) return;
+
+            const filterCat = document.getElementById('map-filter-select').value;
+            const showLabels = document.getElementById('chk-show-labels').checked && mapInteractionMode === 'explore';
+            const allowDrag = document.getElementById('chk-drag-pins').checked;
+
+            const visibleItems = topoData.filter(item => filterCat === 'all' || (filterCat === 'hard' && hardItems.includes(item.id)) || item.cat === filterCat);
+
+            container.innerHTML = visibleItems.map(item => {
+                const isSelected = selectedItem && selectedItem.id === item.id;
+                const isTargetHighlight = (mapInteractionMode === 'name' && mapQuizTarget && mapQuizTarget.id === item.id);
+                const pinClass = getCategoryPinClass(item.cat);
+
+                return `
+                    <div id="ws-pin-${item.id}"
+                         data-id="${item.id}"
+                         style="left: ${item.xPct}%; top: ${item.yPct}%; transform: translate(-50%, -50%); position: absolute;"
+                         class="topo-pin ${pinClass} ${(isSelected || isTargetHighlight) ? 'selected-pin' : ''} ${allowDrag ? 'cursor-move ring-2 ring-amber-300' : ''}">
+                        <span>${item.code}</span>
+                        ${showLabels ? `<span class="topo-pin-label">${item.nl}</span>` : ''}
+                    </div>
+                `;
+            }).join('');
+
+            // חיבור לחיצה או גרירה לכל סימון על תמונת המבחן
+            visibleItems.forEach(item => {
+                const el = document.getElementById('ws-pin-' + item.id);
+                if (!el) return;
+
+                el.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (document.getElementById('chk-drag-pins').checked) return;
+                    handleMarkerClick(item);
+                });
+
+                if (allowDrag) {
+                    makeWorksheetPinDraggable(el, item);
+                }
+            });
+        }
+
+        function makeWorksheetPinDraggable(el, item) {
+            let dragging = false;
+            const box = document.getElementById('worksheet-aspect-box');
+
+            const onMove = (clientX, clientY) => {
+                if (!dragging) return;
+                const rect = box.getBoundingClientRect();
+                const xPct = Math.max(2, Math.min(98, ((clientX - rect.left) / rect.width) * 100));
+                const yPct = Math.max(2, Math.min(98, ((clientY - rect.top) / rect.height) * 100));
+                item.xPct = Number(xPct.toFixed(1));
+                item.yPct = Number(yPct.toFixed(1));
+                el.style.left = item.xPct + '%';
+                el.style.top = item.yPct + '%';
+            };
+
+            const onEnd = () => {
+                if (!dragging) return;
+                dragging = false;
+                try {
+                    const savedPos = JSON.parse(localStorage.getItem('topo_custom_xy_v1') || '{}');
+                    savedPos[item.id] = { xPct: item.xPct, yPct: item.yPct };
+                    localStorage.setItem('topo_custom_xy_v1', JSON.stringify(savedPos));
+                } catch (e) {}
+            };
+
+            el.addEventListener('mousedown', (e) => {
+                if (!document.getElementById('chk-drag-pins').checked) return;
+                e.preventDefault();
+                dragging = true;
+            });
+            window.addEventListener('mousemove', (e) => onMove(e.clientX, e.clientY));
+            window.addEventListener('mouseup', onEnd);
+        }
+
+        // המרת קישור שיתוף של Google Drive לקישור תמונה ישיר
+        function convertGoogleDriveUrl(url) {
+            const trimmed = url.trim();
+            const match = trimmed.match(/\/d\/([a-zA-Z0-9_-]+)/) || trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+            if (match && match[1]) {
+                return `https://drive.google.com/thumbnail?id=${match[1]}&sz=w1800`;
+            }
+            return trimmed;
+        }
+
+        function activateWorksheetImageMode(imgSrc) {
+            if (imgSrc) {
+                document.getElementById('worksheet-img-el').src = imgSrc;
+            }
+            isWorksheetImageActive = true;
+            document.getElementById('map-tile-select').value = 'custom_image';
+            document.getElementById('worksheet-image-mode').classList.remove('hidden');
+            document.getElementById('lbl-drag-pins').classList.remove('hidden');
+            document.getElementById('lbl-drag-pins').classList.add('inline-flex');
+            renderWorksheetImagePins();
+        }
+
+        // לחיצה על סימון במפה
+        function handleMarkerClick(item) {
+            const t = uiTranslations[currentLang];
+            if (mapInteractionMode === 'explore') {
+                setSelectedExploreItem(item, false);
+                speakDutch(item.nl);
+            } else if (mapInteractionMode === 'find') {
+                if (mapQuizLocked || !mapQuizTarget) return;
+                const pinEl = document.getElementById('pin-dom-' + item.id) || document.getElementById('ws-pin-' + item.id);
+                mapQuizTotal++;
+
+                if (item.id === mapQuizTarget.id) {
+                    mapQuizLocked = true;
+                    mapQuizScore++;
+                    if (pinEl) pinEl.classList.add('correct-pin');
+                    setMapQuizFeedback(`${t.correctMsg} ${item.code} = ${item.nl} (${getItemLocalName(item)})`, 'text-emerald-600');
+                    speakDutch(item.nl);
+                    updateMapQuizScoreUI();
+                    setTimeout(() => {
+                        nextMapQuizTurn();
+                    }, 1100);
+                } else {
+                    if (pinEl) pinEl.classList.add('wrong-pin');
+                    setMapQuizFeedback(`${t.wrongPinMsg} ${item.code} (${item.nl}). ${t.searchForMsg} ${mapQuizTarget.nl}!`, 'text-rose-600');
+                    speakDutch(item.nl);
+                    updateMapQuizScoreUI();
+                }
+            } else if (mapInteractionMode === 'name') {
+                speakDutch(item.nl);
+            }
+        }
+
+        // עדכון כרטיס הפרטים במצב למידה חופשי
+        function setSelectedExploreItem(item, flyTo = false) {
+            selectedItem = item;
+            document.getElementById('info-cat-badge').textContent = `${getItemCatLocal(item)} (${item.cat})`;
+            document.getElementById('info-code-badge').textContent = item.code;
+            document.getElementById('info-nl-name').textContent = item.nl;
+            document.getElementById('info-pron').textContent = getItemPron(item);
+            document.getElementById('info-he-name').textContent = getItemLocalName(item);
+            document.getElementById('info-desc').textContent = getItemDesc(item);
+
+            updateHardItemBtn();
+
+            // עדכון הדגשת הסימון במפה בלי לרנדר מחדש את כל המפה
+            document.querySelectorAll('.topo-pin').forEach(el => el.classList.remove('selected-pin'));
+            const activePin = document.getElementById('pin-dom-' + item.id);
+            if (activePin) activePin.classList.add('selected-pin');
+            const activeWsPin = document.getElementById('ws-pin-' + item.id);
+            if (activeWsPin) activeWsPin.classList.add('selected-pin');
+
+            if (flyTo && map && !isWorksheetImageActive) {
+                map.panTo([item.lat, item.lng], { animate: true });
+            }
+            renderSidebarQuickList();
+        }
+
+        // רשימת כל ה-48 בפאנל הצדדי
+        function renderSidebarQuickList() {
+            const listEl = document.getElementById('sidebar-items-list');
+            const filterCat = document.getElementById('map-filter-select').value;
+            const searchVal = document.getElementById('sidebar-quick-search').value.trim().toLowerCase();
+
+            const filtered = topoData.filter(item => {
+                if (filterCat !== 'all' && filterCat !== 'hard' && item.cat !== filterCat) return false;
+                if (filterCat === 'hard' && !hardItems.includes(item.id)) return false;
+                
+                if (!searchVal) return true;
+                const localName = getItemLocalName(item).toLowerCase();
+                return item.nl.toLowerCase().includes(searchVal) ||
+                       localName.includes(searchVal) ||
+                       item.he.includes(searchVal) ||
+                       item.code.toLowerCase().includes(searchVal);
+            });
+
+            listEl.innerHTML = filtered.map(item => {
+                const isSel = selectedItem && selectedItem.id === item.id && mapInteractionMode === 'explore';
+                const pinClass = getCategoryPinClass(item.cat);
+                return `
+                    <button type="button" onclick="selectFromSidebar('${item.id}')"
+                            class="w-full text-start px-2.5 py-1.5 rounded-xl flex items-center justify-between gap-2 transition text-xs ${isSel ? 'bg-teal-50 border border-teal-300 font-bold' : 'hover:bg-slate-100 border border-transparent'}">
+                        <div class="flex items-center gap-2 min-w-0">
+                            <span class="w-6 h-6 rounded-md ${pinClass} text-white font-extrabold flex items-center justify-center text-[11px] shrink-0">${item.code}</span>
+                            <span class="font-bold text-slate-800 truncate" dir="ltr">${item.nl}</span>
+                            ${hardItems.includes(item.id) ? '<span title="דורש חזרה">⭐</span>' : ''}
+                        </div>
+                        <span class="text-slate-500 truncate text-[11px]">${getItemLocalName(item)}</span>
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectFromSidebar(itemId) {
+            const item = topoData.find(i => i.id === itemId);
+            if (!item) return;
+            if (mapInteractionMode !== 'explore') {
+                setMapInteractionMode('explore');
+            }
+            setSelectedExploreItem(item, true);
+            speakDutch(item.nl);
+        }
+
+        // ==========================================================
+        // מצבי אימון על המפה (Find on Map / Name the Symbol)
+        // ==========================================================
+        function setMapInteractionMode(mode) {
+            mapInteractionMode = mode;
+            const btnExplore = document.getElementById('btn-mode-explore');
+            const btnFind = document.getElementById('btn-mode-find');
+            const btnName = document.getElementById('btn-mode-name');
+
+            const activeCls = "px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-teal-600 text-white shadow-sm transition";
+            const idleCls = "px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition";
+
+            btnExplore.className = mode === 'explore' ? activeCls : idleCls;
+            btnFind.className = mode === 'find' ? activeCls : idleCls;
+            btnName.className = mode === 'name' ? activeCls : idleCls;
+
+            const exploreView = document.getElementById('side-explore-view');
+            const quizView = document.getElementById('side-quiz-view');
+
+            if (mode === 'explore') {
+                exploreView.classList.remove('hidden');
+                quizView.classList.add('hidden');
+                renderLeafletMarkers();
+            } else {
+                exploreView.classList.add('hidden');
+                quizView.classList.remove('hidden');
+                document.getElementById('chk-show-labels').checked = false;
+                mapQuizScore = 0;
+                mapQuizTotal = 0;
+                updateMapQuizScoreUI();
+                nextMapQuizTurn();
+            }
+        }
+
+        function nextMapQuizTurn() {
+            const t = uiTranslations[currentLang];
+            mapQuizLocked = false;
+            const filterCat = document.getElementById('map-filter-select').value;
+            let pool = topoData.filter(item => filterCat === 'all' || (filterCat === 'hard' && hardItems.includes(item.id)) || item.cat === filterCat);
+            if (pool.length === 0) pool = topoData; // fallback
+            mapQuizTarget = pool[Math.floor(Math.random() * pool.length)];
+
+            const choicesBox = document.getElementById('map-quiz-choices');
+
+            if (mapInteractionMode === 'find') {
+                document.getElementById('map-quiz-mode-title').textContent = t.modeFind;
+                document.getElementById('map-quiz-prompt-label').textContent = t.findPrompt;
+                document.getElementById('map-quiz-target-main').textContent = mapQuizTarget.nl;
+                document.getElementById('map-quiz-target-sub').textContent = `${getItemPron(mapQuizTarget)} • ${getItemLocalName(mapQuizTarget)} (${getItemCatLocal(mapQuizTarget)})`;
+                choicesBox.classList.add('hidden');
+                setMapQuizFeedback(t.findWait, 'text-slate-500');
+                renderLeafletMarkers();
+                speakDutch(mapQuizTarget.nl);
+            } else if (mapInteractionMode === 'name') {
+                document.getElementById('map-quiz-mode-title').textContent = t.modeName;
+                document.getElementById('map-quiz-prompt-label').textContent = `${t.namePromptPrefix} [${mapQuizTarget.code}] (${getItemCatLocal(mapQuizTarget)})?`;
+                document.getElementById('map-quiz-target-main').textContent = `${t.symbolWord}: ${mapQuizTarget.code}`;
+                document.getElementById('map-quiz-target-sub').textContent = `${t.nameHintPrefix} ${getItemLocalName(mapQuizTarget)}`;
+
+                // 4 אפשרויות
+                const distractors = topoData
+                    .filter(i => i.id !== mapQuizTarget.id)
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 3);
+                const opts = [mapQuizTarget, ...distractors].sort(() => Math.random() - 0.5);
+
+                choicesBox.classList.remove('hidden');
+                choicesBox.innerHTML = opts.map(o => `
+                    <button type="button" onclick="checkMapNameChoice(this, '${o.id}')"
+                            class="bg-slate-100 hover:bg-teal-50 border border-slate-300 rounded-xl py-1.5 px-2 text-xs font-extrabold text-slate-800 truncate" dir="ltr">
+                        ${o.nl}
+                    </button>
+                `).join('');
+
+                setMapQuizFeedback(t.nameWait, 'text-slate-500');
+                renderLeafletMarkers();
+                if (!isWorksheetImageActive) {
+                    map.panTo([mapQuizTarget.lat, mapQuizTarget.lng], { animate: true });
+                }
+            }
+        }
+
+        function checkMapNameChoice(btn, chosenId) {
+            if (mapQuizLocked || !mapQuizTarget) return;
+            const t = uiTranslations[currentLang];
+            mapQuizTotal++;
+            const chosenItem = topoData.find(i => i.id === chosenId);
+
+            if (chosenId === mapQuizTarget.id) {
+                mapQuizLocked = true;
+                mapQuizScore++;
+                btn.className = "bg-emerald-600 text-white border border-emerald-700 rounded-xl py-1.5 px-2 text-xs font-extrabold truncate";
+                setMapQuizFeedback(`${t.correctMsg} ${mapQuizTarget.code} = ${mapQuizTarget.nl}`, 'text-emerald-600');
+                speakDutch(mapQuizTarget.nl);
+                updateMapQuizScoreUI();
+                setTimeout(() => nextMapQuizTurn(), 1100);
+            } else {
+                btn.className = "bg-rose-600 text-white border border-rose-700 rounded-xl py-1.5 px-2 text-xs font-extrabold truncate";
+                setMapQuizFeedback(`${t.wrongChoiceMsg} ${chosenItem ? chosenItem.nl : ''}. ${t.tryAgainMsg}`, 'text-rose-600');
+                updateMapQuizScoreUI();
+            }
+        }
+
+        function setMapQuizFeedback(msg, colorCls) {
+            const el = document.getElementById('map-quiz-feedback');
+            el.className = `text-xs font-bold truncate ${colorCls}`;
+            el.textContent = msg;
+        }
+
+        function updateMapQuizScoreUI() {
+            document.getElementById('map-quiz-score').textContent = mapQuizScore;
+            document.getElementById('map-quiz-total').textContent = mapQuizTotal;
+        }
+
+        // ==========================================================
+        // לשונית 2: מילון וטבלאות מלאות ב-4 שפות
+        // ==========================================================
+        function renderVocabAndTables() {
+            const t = uiTranslations[currentLang];
+
+            // רינדור משפטי ההוראות מתוך המבחן
+            const sentGrid = document.getElementById('vocab-sentences-grid');
+            if (sentGrid) {
+                sentGrid.innerHTML = worksheetSentences.map(s => {
+                    const info = currentLang === 'nl' ? s.nl_info : (s[currentLang] || s.he);
+                    return `
+                        <div class="bg-white/10 border border-white/15 rounded-2xl p-3.5 flex flex-col justify-between gap-2">
+                            <div>
+                                <div class="font-bold text-amber-300 text-sm" dir="ltr">${s.nl}</div>
+                                <div class="text-xs text-slate-200 mt-1 font-semibold">${info.trans}</div>
+                                <div class="text-[11px] text-teal-200 mt-1">${info.pron}</div>
+                            </div>
+                            <button type="button" onclick="speakDutch('${s.speak}')" class="self-end bg-teal-500 hover:bg-teal-400 text-slate-950 font-bold px-3 py-1 rounded-lg text-xs">🔊 ${t.btnSpeak}</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // רינדור כרטיסי אוצר המילים
+            const vocabGrid = document.getElementById('vocab-cards-grid');
+            vocabGrid.innerHTML = coreVocabData.map(v => {
+                const localMeaning = currentLang === 'ru' ? v.ru : (currentLang === 'en' ? v.en : (currentLang === 'nl' ? v.nl_desc : v.he));
+                const localPron = currentLang === 'ru' ? v.pron_ru : (currentLang === 'en' ? v.pron_en : (currentLang === 'nl' ? v.pron_nl : v.pron));
+                const localTip = currentLang === 'ru' ? v.tip_ru : (currentLang === 'en' ? v.tip_en : (currentLang === 'nl' ? v.tip_nl : v.tip));
+                return `
+                    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 flex items-center justify-between gap-2">
+                        <div>
+                            <div class="font-black text-base text-slate-900" dir="ltr">${v.nl}</div>
+                            <div class="text-xs font-bold text-teal-800">${localMeaning}</div>
+                            <div class="text-[11px] text-amber-800 font-medium">${t.lblPron} ${localPron}</div>
+                            <div class="text-[11px] text-slate-400">${localTip}</div>
+                        </div>
+                        <button type="button" onclick="speakDutch('${v.nl}')" class="bg-teal-600 hover:bg-teal-700 text-white p-2.5 rounded-xl text-xs font-bold shrink-0">🔊</button>
+                    </div>
+                `;
+            }).join('');
+
+            renderFullTables();
+        }
+
+        function renderFullTables() {
+            const t = uiTranslations[currentLang];
+            const q = document.getElementById('full-table-search').value.trim().toLowerCase();
+            const cats = [
+                { key: "Landen", title: `1. ${t.filterLanden}` },
+                { key: "Hoofdsteden", title: `2. ${t.filterHoofdsteden}` },
+                { key: "Steden", title: `3. ${t.filterSteden}` },
+                { key: "Wateren", title: `4. ${t.filterWateren}` },
+                { key: "Gebieden", title: `5. ${t.filterGebieden}` },
+                { key: "Gebergten", title: `6. ${t.filterGebergten}` },
+                { key: "Plus TOPO", title: `7. ${t.filterPlus}` }
+            ];
+
+            const container = document.getElementById('full-tables-container');
+            container.innerHTML = '';
+
+            cats.forEach(c => {
+                const items = topoData.filter(item => {
+                    if (item.cat !== c.key) return false;
+                    if (!q) return true;
+                    const locName = getItemLocalName(item).toLowerCase();
+                    const locPron = getItemPron(item).toLowerCase();
+                    return item.nl.toLowerCase().includes(q) ||
+                           locName.includes(q) ||
+                           locPron.includes(q) ||
+                           item.he.includes(q) ||
+                           item.code.toLowerCase().includes(q);
+                });
+
+                if (!items.length) return;
+
+                const html = `
+                    <div class="space-y-2">
+                        <h4 class="text-sm sm:text-base font-extrabold text-slate-800 bg-slate-100 px-3.5 py-2 rounded-xl border-s-4 border-teal-600">${c.title}</h4>
+                        <div class="overflow-x-auto rounded-2xl border border-slate-200">
+                            <table class="w-full text-xs sm:text-sm text-start">
+                                <thead class="bg-slate-50 text-slate-600 font-bold border-b border-slate-200">
+                                    <tr>
+                                        <th class="p-2.5 w-14 text-center">${t.thCode}</th>
+                                        <th class="p-2.5 text-start">${t.thDutch}</th>
+                                        <th class="p-2.5 text-start">${t.thLocal}</th>
+                                        <th class="p-2.5 text-start">${t.thPron}</th>
+                                        <th class="p-2.5 text-start hidden md:table-cell">${t.thDesc}</th>
+                                        <th class="p-2.5 w-24 text-center">${t.thActions}</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-slate-100">
+                                    ${items.map(item => `
+                                        <tr class="hover:bg-slate-50">
+                                            <td class="p-2.5 text-center">
+                                                <span class="inline-block font-black px-2 py-0.5 rounded bg-slate-800 text-white text-xs">${item.code}</span>
+                                            </td>
+                                            <td class="p-2.5 font-extrabold text-slate-900" dir="ltr">${item.nl}</td>
+                                            <td class="p-2.5 font-bold text-teal-800">${getItemLocalName(item)}</td>
+                                            <td class="p-2.5 text-amber-900 font-semibold">${getItemPron(item)}</td>
+                                            <td class="p-2.5 text-xs text-slate-500 hidden md:table-cell">${getItemDesc(item)}</td>
+                                            <td class="p-2.5 text-center">
+                                                <div class="flex items-center justify-center gap-1">
+                                                    <button type="button" onclick="speakDutch('${item.nl.replace(/'/g, "\\'")}')" class="bg-teal-100 hover:bg-teal-200 text-teal-900 px-2 py-1 rounded-lg text-xs font-bold">🔊</button>
+                                                    <button type="button" onclick="focusItemOnMap('${item.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-900 px-2 py-1 rounded-lg text-xs font-bold">🗺️</button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `).join('')}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                `;
+                container.insertAdjacentHTML('beforeend', html);
+            });
+        }
+
+        function focusItemOnMap(itemId) {
+            const item = topoData.find(i => i.id === itemId);
+            if (!item) return;
+            switchMainTab('map');
+            setMapInteractionMode('explore');
+            document.getElementById('map-filter-select').value = 'all';
+            renderLeafletMarkers();
+            setSelectedExploreItem(item, true);
+            speakDutch(item.nl);
+        }
+
+        // ==========================================================
+        // לשונית 3: כרטיסיות זיכרון (Flashcards)
+        // ==========================================================
+        function initFlashcardsDeck() {
+            const cat = document.getElementById('fc-cat-select').value;
+            fcDeck = topoData.filter(i => cat === 'all' || (cat === 'hard' && hardItems.includes(i.id)) || i.cat === cat);
+            if (fcDeck.length === 0) fcDeck = [topoData[2]]; // fallback אם אין שום דבר מסומן
+            fcIndex = 0;
+            fcFlipped = false;
+            renderFlashcard();
+        }
+
+        function renderFlashcard() {
+            const t = uiTranslations[currentLang];
+            const inner = document.getElementById('fc-card-inner');
+            inner.classList.remove('rotate-y-180');
+            fcFlipped = false;
+
+            const item = fcDeck[fcIndex];
+            if (!item) return;
+
+            document.getElementById('fc-front-cat').textContent = `${getItemCatLocal(item)} (${item.cat})`;
+            document.getElementById('fc-counter').textContent = `${fcIndex + 1} / ${fcDeck.length}`;
+            document.getElementById('fc-front-code').textContent = item.code;
+            document.getElementById('fc-front-he').textContent = currentLang === 'nl' ? getItemDesc(item) : getItemLocalName(item);
+
+            document.getElementById('fc-back-nl').textContent = item.nl;
+            document.getElementById('fc-back-pron').textContent = `${t.lblPron} ${getItemPron(item)}`;
+            document.getElementById('fc-back-tip').textContent = getItemDesc(item);
+        }
+
+        // ==========================================================
+        // לשונית 4: מבחן אמריקאי ותרגול כתיב בהולנדית ב-4 שפות
+        // ==========================================================
+        function normalizeDutchText(str) {
+            return str
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[-']/g, " ")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+
+        function loadNextWrittenQuestion() {
+            const t = uiTranslations[currentLang];
+            wqAnswered = false;
+            const cat = document.getElementById('quiz-cat-filter').value;
+            let pool = topoData.filter(i => cat === 'all' || (cat === 'hard' && hardItems.includes(i.id)) || i.cat === cat);
+            if (pool.length === 0) pool = topoData; // fallback
+
+            wqCurrent = pool[Math.floor(Math.random() * pool.length)];
+
+            document.getElementById('wq-badge').textContent = `${getItemCatLocal(wqCurrent)} (${wqCurrent.cat}) • ${t.symbolWord}: ${wqCurrent.code}`;
+            document.getElementById('wq-feedback-box').className = "text-xs sm:text-sm font-bold text-slate-500 truncate";
+            document.getElementById('wq-feedback-box').textContent = t.wqWaitFeedback;
+
+            const promptTarget = currentLang === 'nl'
+                ? `[${wqCurrent.code}] (${getItemDesc(wqCurrent)})`
+                : `"${getItemLocalName(wqCurrent)}" (${t.symbolWord} ${wqCurrent.code})`;
+
+            if (wqMode === 'mc') {
+                document.getElementById('wq-mc-area').classList.remove('hidden');
+                document.getElementById('wq-spell-area').classList.add('hidden');
+                document.getElementById('wq-title').textContent = `${t.wqMcQuestion} ${promptTarget}?`;
+                document.getElementById('wq-subtitle').textContent = getItemDesc(wqCurrent);
+
+                const distractors = topoData
+                    .filter(i => i.id !== wqCurrent.id)
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 3);
+                const opts = [wqCurrent, ...distractors].sort(() => Math.random() - 0.5);
+
+                document.getElementById('wq-mc-area').innerHTML = opts.map(o => `
+                    <button type="button" onclick="handleWrittenMcAnswer(this, '${o.id}')"
+                            class="bg-slate-50 hover:bg-teal-50 border-2 border-slate-200 rounded-2xl p-3 text-center transition flex flex-col items-center justify-center">
+                        <span class="text-base font-black text-slate-900" dir="ltr">${o.nl}</span>
+                        <span class="text-xs text-amber-800 font-semibold">${getItemPron(o)}</span>
+                    </button>
+                `).join('');
+            } else {
+                document.getElementById('wq-mc-area').classList.add('hidden');
+                document.getElementById('wq-spell-area').classList.remove('hidden');
+                document.getElementById('wq-title').textContent = `${t.wqSpellQuestion} ${promptTarget}`;
+                document.getElementById('wq-subtitle').textContent = `${t.lblPron} ${getItemPron(wqCurrent)}`;
+
+                const inp = document.getElementById('wq-spell-input');
+                inp.value = '';
+                inp.disabled = false;
+                inp.focus();
+            }
+        }
+
+        function handleWrittenMcAnswer(btn, chosenId) {
+            if (wqAnswered || !wqCurrent) return;
+            const t = uiTranslations[currentLang];
+            wqAnswered = true;
+            wqTotal++;
+
+            const fb = document.getElementById('wq-feedback-box');
+            if (chosenId === wqCurrent.id) {
+                wqScore++;
+                btn.className = "bg-emerald-600 text-white border-2 border-emerald-700 rounded-2xl p-3 text-center flex flex-col items-center justify-center";
+                fb.className = "text-xs sm:text-sm font-extrabold text-emerald-700 truncate";
+                fb.textContent = `${t.correctMsg} ${wqCurrent.nl} (${getItemPron(wqCurrent)})`;
+            } else {
+                btn.className = "bg-rose-600 text-white border-2 border-rose-700 rounded-2xl p-3 text-center flex flex-col items-center justify-center";
+                fb.className = "text-xs sm:text-sm font-extrabold text-rose-700 truncate";
+                fb.textContent = `❌ ${wqCurrent.nl} (${getItemPron(wqCurrent)})`;
+            }
+            speakDutch(wqCurrent.nl);
+            document.getElementById('written-quiz-score').textContent = `${wqScore} / ${wqTotal}`;
+        }
+
+        function handleWrittenSpellCheck() {
+            if (wqAnswered || !wqCurrent) return;
+            const t = uiTranslations[currentLang];
+            const inp = document.getElementById('wq-spell-input');
+            const val = inp.value.trim();
+            if (!val) return;
+
+            wqAnswered = true;
+            wqTotal++;
+            inp.disabled = true;
+
+            const fb = document.getElementById('wq-feedback-box');
+            if (normalizeDutchText(val) === normalizeDutchText(wqCurrent.nl)) {
+                wqScore++;
+                fb.className = "text-xs sm:text-sm font-extrabold text-emerald-700 truncate";
+                fb.textContent = `${t.correctMsg} ${wqCurrent.nl}`;
+            } else {
+                fb.className = "text-xs sm:text-sm font-extrabold text-rose-700 truncate";
+                fb.textContent = `❌ ${wqCurrent.nl}`;
+            }
+            speakDutch(wqCurrent.nl);
+            document.getElementById('written-quiz-score').textContent = `${wqScore} / ${wqTotal}`;
+        }
+
+        function handleWrittenSpellCheck() {
+            if (wqAnswered || !wqCurrent) return;
+            const inp = document.getElementById('wq-spell-input');
+            const val = inp.value.trim();
+            if (!val) return;
+
+            wqAnswered = true;
+            wqTotal++;
+            inp.disabled = true;
+
+            const fb = document.getElementById('wq-feedback-box');
+            if (normalizeDutchText(val) === normalizeDutchText(wqCurrent.nl)) {
+                wqScore++;
+                fb.className = "text-xs sm:text-sm font-extrabold text-emerald-700 truncate";
+                fb.textContent = `✅ אלוף! כתבת נכון: ${wqCurrent.nl}`;
+            } else {
+                fb.className = "text-xs sm:text-sm font-extrabold text-rose-700 truncate";
+                fb.textContent = `❌ הכתיב הנכון הוא: ${wqCurrent.nl}`;
+            }
+            speakDutch(wqCurrent.nl);
+            document.getElementById('written-quiz-score').textContent = `${wqScore} / ${wqTotal}`;
+        }
+
+        function insertSpecialChar(ch) {
+            const inp = document.getElementById('wq-spell-input');
+            if (inp.disabled) return;
+            inp.value += ch;
+            inp.focus();
+        }
+
+        // ==========================================================
+        // החלפת לשוניות ראשיות ללא קפיצות
+        // ==========================================================
+        function switchMainTab(tabName) {
+            ['map', 'vocab', 'flashcards', 'quiz'].forEach(t => {
+                const panel = document.getElementById('tab-panel-' + t);
+                if (t === tabName) {
+                    panel.classList.remove('hidden');
+                } else {
+                    panel.classList.add('hidden');
+                }
+            });
+
+            document.querySelectorAll('.main-tab-btn').forEach(btn => {
+                if (btn.getAttribute('data-tab') === tabName) {
+                    btn.className = "main-tab-btn bg-teal-500 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1.5";
+                } else {
+                    btn.className = "main-tab-btn text-slate-300 hover:text-white hover:bg-slate-700 font-medium px-3 py-1.5 rounded-lg text-xs sm:text-sm transition flex items-center gap-1.5";
+                }
+            });
+
+            if (tabName === 'map' && map) {
+                setTimeout(() => map.invalidateSize(), 50);
+            }
+            if (tabName === 'flashcards') {
+                renderFlashcard();
+            }
+            if (tabName === 'quiz' && !wqCurrent) {
+                loadNextWrittenQuestion();
+            }
+        }
+
+        // ==========================================================
+        // מערכת פריטים קשים (דורש חזרה - ⭐)
+        // ==========================================================
+        function toggleHardItem() {
+            if (!selectedItem) return;
+            const idx = hardItems.indexOf(selectedItem.id);
+            if (idx > -1) {
+                hardItems.splice(idx, 1);
+            } else {
+                hardItems.push(selectedItem.id);
+            }
+            try { localStorage.setItem('topo_hard_items_v1', JSON.stringify(hardItems)); } catch(e){}
+            updateHardItemBtn();
+            renderSidebarQuickList(); // לעדכן את הכוכב ברשימה
+            
+            // אם אנחנו מסננים כרגע לפי "דורש חזרה", נרענן את המפה
+            if (document.getElementById('map-filter-select').value === 'hard') {
+                renderLeafletMarkers();
+            }
+        }
+
+        function updateHardItemBtn() {
+            if (!selectedItem) return;
+            const btn = document.getElementById('btn-toggle-hard');
+            const txt = document.getElementById('txt-hard-btn');
+            const t = uiTranslations[currentLang];
+            
+            if (hardItems.includes(selectedItem.id)) {
+                btn.className = "inline-flex items-center gap-1 bg-rose-100 hover:bg-rose-200 text-rose-900 font-bold px-3 py-1.5 rounded-xl text-xs transition border border-rose-300";
+                txt.textContent = t.btnUnmarkHard || 'הוסר מחזרה';
+            } else {
+                btn.className = "inline-flex items-center gap-1 bg-amber-50 hover:bg-amber-100 text-amber-900 font-bold px-3 py-1.5 rounded-xl text-xs transition border border-amber-200";
+                txt.textContent = t.btnMarkHard || 'סמן לחזרה';
+            }
+        }
+
+        // ==========================================================
+        // חיבור כל האירועים והכפתורים בטעינת הדף
+        // ==========================================================
+        window.addEventListener('DOMContentLoaded', () => {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.getVoices();
+            }
+
+            // אתחול מפת Leaflet
+            initLeafletMap();
+            setAppLanguage(currentLang);
+
+            // ניווט ראשי
+            document.querySelectorAll('.main-tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => switchMainTab(btn.getAttribute('data-tab')));
+            });
+
+            // מצבי מפה
+            document.getElementById('btn-mode-explore').addEventListener('click', () => setMapInteractionMode('explore'));
+            document.getElementById('btn-mode-find').addEventListener('click', () => setMapInteractionMode('find'));
+            document.getElementById('btn-mode-name').addEventListener('click', () => setMapInteractionMode('name'));
+
+            // כפתורי זום מהיר במפה
+            document.getElementById('btn-zoom-all').addEventListener('click', () => {
+                map.setView([50.2, 4.2], 5, { animate: true });
+            });
+            document.getElementById('btn-zoom-belgium').addEventListener('click', () => {
+                map.setView([50.65, 4.45], 8, { animate: true });
+            });
+            document.getElementById('btn-zoom-uk').addEventListener('click', () => {
+                map.setView([54.2, -3.8], 6, { animate: true });
+            });
+
+            // פתיחה וסגירה של מודאל דף המבחן המקורי
+            document.getElementById('btn-open-original').addEventListener('click', () => {
+                document.getElementById('original-sheet-modal').classList.remove('hidden');
+            });
+            document.getElementById('btn-close-modal').addEventListener('click', () => {
+                document.getElementById('original-sheet-modal').classList.add('hidden');
+            });
+
+            // סינון מפה והחלפת שכבת רקע
+            document.getElementById('map-filter-select').addEventListener('change', () => {
+                renderLeafletMarkers();
+                if (mapInteractionMode !== 'explore') nextMapQuizTurn();
+            });
+            document.getElementById('map-tile-select').addEventListener('change', (e) => {
+                const style = e.target.value;
+                const wsOverlay = document.getElementById('worksheet-image-mode');
+                const dragLabel = document.getElementById('lbl-drag-pins');
+
+                if (style === 'custom_image') {
+                    isWorksheetImageActive = true;
+                    wsOverlay.classList.remove('hidden');
+                    dragLabel.classList.remove('hidden');
+                    dragLabel.classList.add('inline-flex');
+                    renderWorksheetImagePins();
+                    return;
+                }
+
+                isWorksheetImageActive = false;
+                wsOverlay.classList.add('hidden');
+                dragLabel.classList.add('hidden');
+                dragLabel.classList.remove('inline-flex');
+
+                if (currentTileLayer) map.removeLayer(currentTileLayer);
+                const targetUrl = (style === 'vector_clean') ? tileUrls.esri_gray : (tileUrls[style] || tileUrls.esri_gray);
+                currentTileLayer = L.tileLayer(targetUrl, {
+                    maxZoom: 18
+                }).addTo(map);
+
+                if (vectorCountriesLayer) {
+                    if (style === 'vector_clean') {
+                        vectorCountriesLayer.addTo(map);
+                    } else {
+                        map.removeLayer(vectorCountriesLayer);
+                    }
+                }
+            });
+            document.getElementById('chk-show-labels').addEventListener('change', () => renderLeafletMarkers());
+            document.getElementById('chk-drag-pins').addEventListener('change', () => renderWorksheetImagePins());
+            document.getElementById('sidebar-quick-search').addEventListener('input', () => renderSidebarQuickList());
+
+            // העלאת תמונת המבחן מהמחשב (נשמר ב-localStorage!)
+            document.getElementById('input-upload-map-file').addEventListener('change', (e) => {
+                const file = e.target.files && e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    const dataUrl = evt.target.result;
+                    try {
+                        localStorage.setItem('topo_custom_worksheet_img', dataUrl);
+                    } catch (err) {}
+                    activateWorksheetImageMode(dataUrl);
+                    document.getElementById('modal-upload-status').textContent = '✅ תמונת המבחן נטענה ונשמרה בהצלחה!';
+                    setTimeout(() => {
+                        document.getElementById('original-sheet-modal').classList.add('hidden');
+                    }, 700);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // טעינת תמונה מקישור Google Drive או URL
+            document.getElementById('btn-apply-drive-url').addEventListener('click', () => {
+                const rawUrl = document.getElementById('input-drive-url').value;
+                if (!rawUrl.trim()) return;
+                const finalUrl = convertGoogleDriveUrl(rawUrl);
+                try {
+                    localStorage.setItem('topo_custom_worksheet_img', finalUrl);
+                } catch (err) {}
+                activateWorksheetImageMode(finalUrl);
+                document.getElementById('modal-upload-status').textContent = '✅ הקישור הופעל! עובר לתצוגת תמונת המבחן...';
+                setTimeout(() => {
+                    document.getElementById('original-sheet-modal').classList.add('hidden');
+                }, 700);
+            });
+
+            // איפוס מיקומי סימונים על התמונה
+            document.getElementById('btn-reset-custom-positions').addEventListener('click', () => {
+                localStorage.removeItem('topo_custom_xy_v1');
+                location.reload();
+            });
+
+            // כפתורים בכרטיס הפרטים של המפה
+            document.getElementById('btn-speak-selected').addEventListener('click', () => {
+                if (selectedItem) speakDutch(selectedItem.nl);
+            });
+            document.getElementById('btn-center-selected').addEventListener('click', () => {
+                if (selectedItem && map) map.setView([selectedItem.lat, selectedItem.lng], 7, { animate: true });
+            });
+            document.getElementById('btn-toggle-hard').addEventListener('click', () => {
+                toggleHardItem();
+            });
+
+            // כפתורים בחידון המפה
+            document.getElementById('btn-map-quiz-speak').addEventListener('click', () => {
+                if (mapQuizTarget) speakDutch(mapQuizTarget.nl);
+            });
+            document.getElementById('btn-map-quiz-next').addEventListener('click', () => nextMapQuizTurn());
+
+            // חיפוש בטבלה המלאה
+            document.getElementById('full-table-search').addEventListener('input', () => renderFullTables());
+
+            // כרטיסיות זיכרון
+            document.getElementById('fc-cat-select').addEventListener('change', () => initFlashcardsDeck());
+            document.getElementById('btn-fc-shuffle').addEventListener('click', () => {
+                fcDeck.sort(() => Math.random() - 0.5);
+                fcIndex = 0;
+                renderFlashcard();
+            });
+            document.getElementById('fc-card-inner').addEventListener('click', () => {
+                fcFlipped = !fcFlipped;
+                const inner = document.getElementById('fc-card-inner');
+                if (fcFlipped) {
+                    inner.classList.add('rotate-y-180');
+                    if (fcDeck[fcIndex]) speakDutch(fcDeck[fcIndex].nl);
+                } else {
+                    inner.classList.remove('rotate-y-180');
+                }
+            });
+            document.getElementById('btn-fc-speak').addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (fcDeck[fcIndex]) speakDutch(fcDeck[fcIndex].nl);
+            });
+            document.getElementById('btn-fc-next').addEventListener('click', () => {
+                fcIndex = (fcIndex + 1) % fcDeck.length;
+                renderFlashcard();
+            });
+            document.getElementById('btn-fc-prev').addEventListener('click', () => {
+                fcIndex = (fcIndex - 1 + fcDeck.length) % fcDeck.length;
+                renderFlashcard();
+            });
+
+            // מבחן אמריקאי וכתיב
+            document.getElementById('btn-qmode-mc').addEventListener('click', () => {
+                wqMode = 'mc';
+                document.getElementById('btn-qmode-mc').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-600 text-white";
+                document.getElementById('btn-qmode-spell').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200";
+                loadNextWrittenQuestion();
+            });
+            document.getElementById('btn-qmode-spell').addEventListener('click', () => {
+                wqMode = 'spell';
+                document.getElementById('btn-qmode-spell').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-teal-600 text-white";
+                document.getElementById('btn-qmode-mc').className = "px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200";
+                loadNextWrittenQuestion();
+            });
+            document.getElementById('quiz-cat-filter').addEventListener('change', () => loadNextWrittenQuestion());
+            document.getElementById('btn-wq-speak').addEventListener('click', () => {
+                if (wqCurrent) speakDutch(wqCurrent.nl);
+            });
+            document.getElementById('btn-wq-check-spell').addEventListener('click', () => handleWrittenSpellCheck());
+            document.getElementById('wq-spell-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') handleWrittenSpellCheck();
+            });
+            document.getElementById('btn-wq-next').addEventListener('click', () => loadNextWrittenQuestion());
+        });
+    </script>
+</body>
+</html>

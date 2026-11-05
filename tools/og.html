@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Template for the 1200x630 share image. Rendered to site/assets/img/og-image.png by tools/build.mjs -->
+<link rel="stylesheet" href="../site/assets/fonts/fonts.css">
+<link rel="stylesheet" href="../site/assets/css/tokens.css">
+<style>
+  html, body { margin: 0; width: 1200px; height: 630px; overflow: hidden; }
+  body {
+    font-family: var(--font-family); color: var(--color-text-on-page);
+    background-color: var(--color-page);
+    background-image:
+      radial-gradient(ellipse at 30% -20%, rgba(46,196,182,.22), transparent 60%),
+      linear-gradient(var(--color-grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--color-grid) 1px, transparent 1px);
+    background-size: auto, 72px 72px, 72px 72px;
+    display: grid; grid-template-columns: 560px 1fr; align-items: center; gap: 40px; padding: 0 64px;
+    box-sizing: border-box;
+  }
+  .word { display: flex; align-items: center; gap: 14px; font-size: 34px; font-weight: 800; }
+  .word svg { width: 52px; height: 52px; }
+  h1 { font-size: 62px; text-wrap: balance; line-height: 1.04; font-weight: 800; letter-spacing: -0.02em; margin: 26px 0 18px; }
+  p { margin: 0; font-size: 23px; white-space: nowrap; color: var(--color-text-on-page-muted); }
+  .cards { position: relative; height: 470px; }
+  .card { position: absolute; width: 300px; padding: 12px; background: var(--color-card); border-radius: 26px; box-shadow: var(--shadow-card); }
+  .card img { display: block; width: 100%; border-radius: 16px; }
+  .a { top: 10px; left: 0; transform: rotate(-4deg); }
+  .b { bottom: 0; right: 0; transform: rotate(3deg); }
+  .trail { position: absolute; left: 200px; top: 250px; width: 200px; height: 160px; }
+</style>
+</head>
+<body>
+  <div>
+    <div class="word">
+      <svg viewBox="0 0 64 64"><path d="M32 58 C22 45 13 37 13 26 a19 19 0 0 1 38 0 c0 11 -9 19 -19 32z" fill="#FFC845" stroke="#0E2240" stroke-width="3"/><circle cx="32" cy="26" r="8" fill="#2EC4B6" stroke="#0E2240" stroke-width="3"/></svg>
+      Curiosity Quest
+    </div>
+    <h1>Where will curiosity take you?</h1>
+    <p>Made for my kids. Open to every curious mind.</p>
+  </div>
+  <div class="cards">
+    <div class="card a"><img src="../site/assets/img/space.svg" alt=""></div>
+    <div class="card b"><img src="../site/assets/img/europe.svg" alt=""></div>
+  </div>
+</body>
+</html>

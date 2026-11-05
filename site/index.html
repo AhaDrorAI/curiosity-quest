@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" class="cq-pending">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Curiosity Quest: learning adventures for curious kids</title>
+  <meta name="description" content="Free learning adventures in Hebrew, English and Dutch. No accounts, no ads, no tracking.">
+  <meta name="theme-color" content="#0F2747">
+  <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
+
+  <!-- Share preview (what WhatsApp, Slack etc. show for a link). __SITE_URL__ is filled in by tools/build.mjs -->
+  <link rel="canonical" href="__SITE_URL__/">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Curiosity Quest">
+  <meta property="og:title" content="Curiosity Quest">
+  <meta property="og:description" content="Made for my kids. Open to every curious mind. Free learning adventures in Hebrew, English and Dutch.">
+  <meta property="og:url" content="__SITE_URL__/">
+  <meta property="og:image" content="__SITE_URL__/assets/img/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Curiosity Quest: a dotted trail between a Solar System and a map of Western Europe">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script>
+    // Pick the language before the page is drawn, so there is no flash of the wrong language.
+    // Order: a ?lang= link, then the visitor's saved choice, then the browser's language, then English.
+    (function () {
+      var supported = ['he', 'en', 'nl'], lang = null;
+      try { var q = new URLSearchParams(location.search).get('lang'); if (supported.indexOf(q) > -1) lang = q; } catch (e) {}
+      if (!lang) { try { var s = localStorage.getItem('cq_lang'); if (supported.indexOf(s) > -1) lang = s; } catch (e) {} }
+      if (!lang) {
+        var list = navigator.languages || [navigator.language || ''];
+        for (var i = 0; i < list.length && !lang; i++) {
+          var c = String(list[i]).slice(0, 2).toLowerCase();
+          if (c === 'iw') c = 'he';
+          if (supported.indexOf(c) > -1) lang = c;
+        }
+      }
+      window.CQ_START_LANG = lang || 'en';
+      document.documentElement.lang = window.CQ_START_LANG;
+      document.documentElement.dir = window.CQ_START_LANG === 'he' ? 'rtl' : 'ltr';
+      // Safety net: never keep the page hidden if a script fails to load
+      setTimeout(function () { document.documentElement.classList.remove('cq-pending'); }, 1500);
+    })();
+  </script>
+  <link rel="stylesheet" href="assets/fonts/fonts.css">
+  <link rel="stylesheet" href="assets/css/tokens.css">
+  <link rel="stylesheet" href="assets/css/hub.css">
+  <script src="assets/js/i18n.js" defer></script>
+  <script src="assets/js/catalog.js" defer></script>
+  <script src="assets/js/hub.js" defer></script>
+  <noscript><style>html.cq-pending body { visibility: visible; }</style></noscript>
+</head>
+<body>
+  <a class="skip-link" href="#adventures" data-i18n="skipLink">Skip to the adventures</a>
+
+  <div class="page">
+    <header class="masthead">
+      <div class="brand">
+        <a class="wordmark" href="./" lang="en" dir="ltr">
+          <svg viewBox="0 0 64 64" aria-hidden="true" focusable="false">
+            <path d="M32 58 C22 45 13 37 13 26 a19 19 0 0 1 38 0 c0 11 -9 19 -19 32z" fill="#FFC845" stroke="#0E2240" stroke-width="3"/>
+            <circle cx="32" cy="26" r="8" fill="#2EC4B6" stroke="#0E2240" stroke-width="3"/>
+          </svg>
+          <span>Curiosity Quest</span>
+        </a>
+        <p class="tagline" data-i18n="tagline">Made for my kids. Open to every curious mind.</p>
+      </div>
+
+      <div class="lang-switch" role="group" data-i18n-aria="languageSwitch" aria-label="Site language" id="lang-switch">
+        <!-- buttons are added by hub.js, one per hub language -->
+      </div>
+    </header>
+
+    <main>
+      <section class="hero" aria-labelledby="headline">
+        <h1 class="headline" id="headline" data-i18n="headline">Where will curiosity take you?</h1>
+        <p class="lead" data-i18n="lead">Pick an adventure. Explore something new.</p>
+        <span class="trail-start" aria-hidden="true"></span>
+      </section>
+
+      <section class="adventures" id="adventures" tabindex="-1" aria-labelledby="adventures-label">
+        <h2 class="visually-hidden" id="adventures-label" data-i18n="listLabel">Adventures</h2>
+        <ol class="destinations" id="destinations"></ol>
+        <noscript>
+          <p>JavaScript is needed to show the adventures. You can also open them directly:</p>
+          <ul class="noscript-list">
+            <li><a href="https://ahadrorai.github.io/solar-system-madaim/">Space adventure</a></li>
+            <li><a href="activities/western-europe/">Western Europe</a></li>
+          </ul>
+        </noscript>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p class="foot-line" data-i18n="footerLine">Built for our family. Shared with yours.</p>
+      <details class="about" id="about">
+        <summary data-i18n="aboutTitle">About this project</summary>
+        <div class="about-panel">
+          <div id="about-body"></div>
+          <p class="credits" data-i18n="credits"></p>
+        </div>
+      </details>
+    </footer>
+  </div>
+</body>
+</html>
