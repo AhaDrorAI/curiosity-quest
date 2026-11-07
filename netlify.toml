@@ -1,7 +1,14 @@
 # Netlify settings for Curiosity Quest.
-# The site is plain static files. Build locally with `npm run build`, then deploy dist/.
+# Netlify builds the site from GitHub on every push to the main branch.
 [build]
+  command = "npm run build"
   publish = "dist"
+
+# The build server has no browser: reuse the committed share image and don't download one.
+[build.environment]
+  NODE_VERSION = "22"
+  SKIP_OG_IMAGE = "1"
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD = "1"
 
 # Safety and privacy headers for every page
 [[headers]]

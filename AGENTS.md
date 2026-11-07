@@ -95,14 +95,19 @@ node tools/shoot.mjs http://localhost:8080 tools/out   # screenshots to review b
 
 ## Deploying
 
-The site is deployed as static files from `dist/` to the Netlify project **curiosity-quest-kids**
-(site id `d1a90bec-3bdd-4141-a544-6ae4d0533566`).
-- With the Netlify CLI: `npm run build && npx netlify deploy --prod --dir dist --site d1a90bec-3bdd-4141-a544-6ae4d0533566`
-- Or with the Netlify MCP tool `deploy-site` using that site id.
-- Access must stay **public, no password, no sign-in**. After deploying, open the live URL in a private window to confirm.
-- If this folder is later connected to GitHub for automatic deploys, set the build command to
-  `SKIP_OG_IMAGE=1 npm run build` (no browser needed; the committed share image is reused) and the
-  publish directory to `dist`. `.netlify` is already in `.gitignore`. Run `npm test` locally before pushing.
+**Automatic.** The code lives at https://github.com/AhaDrorAI/curiosity-quest and the Netlify project
+**curiosity-quest-kids** (site id `d1a90bec-3bdd-4141-a544-6ae4d0533566`) is linked to it.
+Every push to the `main` branch makes Netlify run `npm run build` (settings in `netlify.toml`) and publish `dist/`.
+
+1. Make the change, then `npm run build && npm test` locally; everything must pass.
+2. Commit with a clear message and push to `main`.
+3. Watch the deploy in the Netlify dashboard (Deploys tab); a failed build never replaces the live site.
+4. Open https://curiosity-quest-kids.netlify.app in a private window to confirm.
+
+- For a bigger change, push to a branch and open a pull request: Netlify builds a **Deploy Preview** at its own address so it can be checked before merging.
+- The build server has no browser, so `netlify.toml` sets `SKIP_OG_IMAGE=1`; if the share image should change, regenerate it locally with `npm run build` and commit `site/assets/img/og-image.png`.
+- Avoid manual `netlify deploy --prod`: the next push silently replaces it.
+- Access must stay **public, no password, no sign-in**.
 
 ## Future: "Warm Workshop" parent mode
 
