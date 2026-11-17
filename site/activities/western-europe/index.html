@@ -76,6 +76,45 @@
             box-shadow: 0 0 0 4px #dc2626 !important;
         }
 
+        /* Quiz modes: plain dots with no letter or number, like the blind map in the school test.
+           The 28x28 box stays as the click/touch target; only a small dot is drawn inside it. */
+        .topo-pin.quiz-dot,
+        .topo-pin.quiz-dot:hover,
+        .topo-pin.quiz-dot.selected-pin,
+        .topo-pin.quiz-dot.correct-pin,
+        .topo-pin.quiz-dot.wrong-pin {
+            background: transparent !important;
+            border-color: transparent !important;
+            box-shadow: none !important;
+            border-radius: 9999px;
+        }
+        .topo-pin.quiz-dot::before {
+            content: '';
+            width: 14px;
+            height: 14px;
+            border-radius: 9999px;
+            background: #1e293b;
+            border: 2px solid #ffffff;
+            box-shadow: 0 1px 4px rgba(15, 23, 42, 0.5);
+            transition: background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .topo-pin.quiz-dot:hover::before { box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.85); }
+        .topo-pin.quiz-dot.selected-pin::before { width: 18px; height: 18px; background: #f59e0b; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.4), 0 0 12px rgba(245, 158, 11, 0.95); }
+        .topo-pin.quiz-dot.correct-pin::before { width: 18px; height: 18px; background: #047857; }
+        .topo-pin.quiz-dot.wrong-pin::before { width: 18px; height: 18px; background: #b91c1c; }
+
+        /* Mini map on flashcards and in the written quiz: the place is shown by its location only */
+        .mini-map { display: block; width: 100%; height: auto; }
+        .mini-map path, .mini-map rect { vector-effect: non-scaling-stroke; } /* the zoomed inset keeps thin lines */
+        .mini-map .mm-sea { fill: #cde6f5; }
+        .mini-map .mm-land { fill: #eef2f6; stroke: #94a3b8; stroke-width: 0.6; stroke-linejoin: round; }
+        .mini-map .mm-study { fill: #fef9c3; stroke: #475569; stroke-width: 0.9; }
+        .mini-map .mm-river { fill: none; stroke: #0284c7; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; opacity: 0.85; }
+        .mini-map .mm-frame { fill: none; stroke: #0f172a; stroke-width: 1.5; }
+        .mini-map .mm-zoom-box { fill: none; stroke: #0f172a; stroke-width: 1.2; stroke-dasharray: 3 2; }
+        .mini-map .mm-dot { fill: #e11d48; stroke: #ffffff; stroke-width: 2; }
+        .mini-map .mm-halo { fill: rgba(225, 29, 72, 0.22); }
+
         /* תווית שם מרחפת מעל הסימון מבלי לשנות את גודל האייקון עצמו */
         .topo-pin-label {
             position: absolute;
@@ -454,18 +493,18 @@
                 <!-- כרטיסייה בגובה נעול של 280px למניעת כל קפיצה -->
                 <div id="fc-empty" role="status" class="hidden bg-amber-50 border border-amber-200 text-amber-950 rounded-2xl p-4 text-sm font-semibold leading-relaxed text-center"></div>
 
-                <div id="fc-card-wrap" class="perspective-1000 w-full h-[280px]">
+                <div id="fc-card-wrap" class="perspective-1000 w-full h-[360px]">
                     <div id="fc-card-inner" class="w-full h-full relative transform-style-3d cursor-pointer rounded-3xl shadow-lg">
                         <!-- צד קדמי -->
-                        <div id="fc-face-front" class="backface-hidden absolute inset-0 bg-gradient-to-br from-teal-600 to-cyan-800 text-white rounded-3xl p-6 flex flex-col justify-between border-2 border-teal-400">
+                        <div id="fc-face-front" class="backface-hidden absolute inset-0 bg-gradient-to-br from-teal-600 to-cyan-800 text-white rounded-3xl p-5 flex flex-col justify-between border-2 border-teal-400">
                             <div class="flex justify-between items-center text-xs font-bold text-teal-100">
                                 <span id="fc-front-cat">מדינה</span>
                                 <span id="fc-counter">1 / 48</span>
                             </div>
                             <div class="my-auto space-y-2">
-                                <div id="fc-front-prompt" class="text-xs text-teal-100">סימון במפה ושם בעברית:</div>
-                                <div id="fc-front-code" class="text-4xl font-black bg-white/20 px-5 py-1.5 rounded-2xl inline-block">A</div>
-                                <div id="fc-front-he" class="text-2xl font-extrabold">אירלנד</div>
+                                <div id="fc-front-prompt" class="text-sm font-bold text-white">איזה מקום מסומן בנקודה?</div>
+                                <!-- Only the location is shown: no letter, number or name (like the school test) -->
+                                <div id="fc-front-map" class="mx-auto w-[220px] rounded-xl overflow-hidden border-2 border-white/70 bg-white"></div>
                             </div>
                             <div id="fc-front-hint" class="text-xs text-teal-200">👆 לחץ על הכרטיסייה כדי להפוך ולשמוע בהולנדית</div>
                         </div>
@@ -480,6 +519,7 @@
                             </div>
                             <div class="my-auto space-y-2">
                                 <div id="fc-back-nl" class="text-3xl sm:text-4xl font-black text-amber-300" dir="ltr">Ierland</div>
+                                <div id="fc-back-local" class="text-lg font-extrabold text-white"></div>
                                 <div id="fc-back-pron" class="text-base font-bold text-teal-300">הגייה: אִירְלַנְד</div>
                                 <div id="fc-back-tip" class="text-xs text-slate-300 max-w-md mx-auto pt-1"></div>
                             </div>
@@ -542,7 +582,9 @@
                 <!-- תיבת השאלה בגובה קבוע -->
                 <div id="wq-question-box" class="bg-slate-50 border border-slate-200 rounded-2xl p-4 text-center space-y-2 min-h-[135px] flex flex-col justify-center">
                     <div id="wq-badge" class="text-xs font-bold text-indigo-700">קטגוריה • סימון</div>
-                    <h3 id="wq-title" class="text-lg sm:text-xl font-black text-slate-900">איך אומרים בהולנדית?</h3>
+                    <!-- Only the location is shown: no letter, number or name (like the school test) -->
+                    <div id="wq-map" class="mx-auto w-[220px] rounded-xl overflow-hidden border-2 border-slate-300 bg-white"></div>
+                    <h3 id="wq-title" class="text-lg sm:text-xl font-black text-slate-900">מה השם בהולנדית של המקום המסומן במפה?</h3>
                     <div id="wq-subtitle" class="text-xs text-slate-500"></div>
                     <div class="pt-1">
                         <button type="button" id="btn-wq-speak" class="inline-flex items-center gap-1 bg-teal-100 hover:bg-teal-200 text-teal-900 font-bold px-3 py-1 rounded-lg text-xs">
@@ -611,7 +653,7 @@
                 navQuiz: 'מבחן וכתיב',
                 modeExplore: '🔍 מצב למידה חופשי',
                 modeFind: '🎯 בחן אותי: "מצא על המפה"',
-                modeName: '❓ בחן אותי: "זהה את הסימון"',
+                modeName: '❓ בחן אותי: "מה יש בנקודה?"',
                 zoomAll: '🌍 כל מערב אירופה',
                 zoomBelgium: '🔍 הגדלת בלגיה (K, L, l, g, 3, 9)',
                 zoomUk: '🔍 בריטניה ואירלנד',
@@ -670,10 +712,9 @@
                 btnNext: 'הבא ⏭️',
                 sidebarListTitle: '📋 רשימת הסימונים (48)',
                 quickSearchPlaceholder: 'סינון מהיר...',
-                findPrompt: 'לחץ על הסימון במפה עבור:',
-                findWait: 'לחץ על האות או המספר המתאים במפה...',
-                namePromptPrefix: 'מה השם בהולנדית של סימון',
-                nameHintPrefix: 'רמז:',
+                findPrompt: 'לחץ על הנקודה הנכונה במפה עבור:',
+                findWait: 'לחץ על הנקודה המתאימה במפה...',
+                namePrompt: 'מה השם בהולנדית של הנקודה הכתומה במפה?',
                 nameWait: 'בחר את התשובה הנכונה מתוך 4 האפשרויות...',
                 correctMsg: '✅ מעולה!',
                 wrongPinMsg: '❌ לחצת על',
@@ -692,7 +733,7 @@
                 thActions: 'פעולות',
                 fcHeading: '🃏 כרטיסיות זיכרון (Flashcards)',
                 fcShuffle: '🔀 ערבב',
-                fcFrontPrompt: 'סימון במפה ושם בעברית:',
+                fcFrontPrompt: 'איזה מקום מסומן בנקודה?',
                 fcFrontHint: '👆 לחץ על הכרטיסייה כדי להפוך ולשמוע בהולנדית',
                 fcBackLabel: 'השם בהולנדית (Nederlands)',
                 fcSpeakAgain: '🔊 השמע שוב',
@@ -706,9 +747,11 @@
                 wqCheckBtn: 'בדוק תשובה ✔️',
                 wqWaitFeedback: 'בחר או הקלד את התשובה בהולנדית...',
                 wqNextBtn: 'שאלה הבאה ⏭️',
-                wqMcQuestion: 'איך אומרים בהולנדית:',
-                wqSpellQuestion: 'כתוב בהולנדית:',
-                symbolWord: 'סימון'
+                wqMcQuestion: 'מה השם בהולנדית של המקום המסומן במפה?',
+                wqSpellQuestion: 'כתוב בהולנדית את שם המקום המסומן במפה:',
+                dotAria: 'נקודה',
+                miniMapAria: 'מפת מערב אירופה, מקום אחד מסומן בנקודה',
+                miniMapError: 'המפה הקטנה לא נטענה.'
             },
             ru: {
                 dir: 'ltr',
@@ -719,7 +762,7 @@
                 navQuiz: 'Тест и правописание',
                 modeExplore: '🔍 Свободное изучение',
                 modeFind: '🎯 Тест: «Найди на карте»',
-                modeName: '❓ Тест: «Угадай символ»',
+                modeName: '❓ Тест: «Что в этой точке?»',
                 zoomAll: '🌍 Вся Западная Европа',
                 zoomBelgium: '🔍 Увеличить Бельгию (K, L, l, g, 3, 9)',
                 zoomUk: '🔍 Британия и Ирландия',
@@ -778,10 +821,9 @@
                 btnNext: 'Далее ⏭️',
                 sidebarListTitle: '📋 Список объектов (48)',
                 quickSearchPlaceholder: 'Быстрый поиск...',
-                findPrompt: 'Нажмите на метку на карте для:',
-                findWait: 'Нажмите на нужную букву или цифру на карте...',
-                namePromptPrefix: 'Как по-нидерландски называется метка',
-                nameHintPrefix: 'Подсказка:',
+                findPrompt: 'Нажмите на нужную точку на карте:',
+                findWait: 'Нажмите на нужную точку на карте...',
+                namePrompt: 'Как по-нидерландски называется оранжевая точка на карте?',
                 nameWait: 'Выберите правильный ответ из 4 вариантов...',
                 correctMsg: '✅ Отлично!',
                 wrongPinMsg: '❌ Вы нажали на',
@@ -800,7 +842,7 @@
                 thActions: 'Действия',
                 fcHeading: '🃏 Карточки для запоминания (Flashcards)',
                 fcShuffle: '🔀 Перемешать',
-                fcFrontPrompt: 'Код на карте и название по-русски:',
+                fcFrontPrompt: 'Какое место отмечено точкой?',
                 fcFrontHint: '👆 Нажмите на карточку, чтобы перевернуть и услышать по-нидерландски',
                 fcBackLabel: 'Название по-нидерландски (Nederlands)',
                 fcSpeakAgain: '🔊 Повторить',
@@ -814,9 +856,11 @@
                 wqCheckBtn: 'Проверить ✔️',
                 wqWaitFeedback: 'Выберите или введите ответ по-нидерландски...',
                 wqNextBtn: 'Следующий вопрос ⏭️',
-                wqMcQuestion: 'Как по-нидерландски:',
-                wqSpellQuestion: 'Напишите по-нидерландски:',
-                symbolWord: 'код'
+                wqMcQuestion: 'Как по-нидерландски называется место, отмеченное на карте?',
+                wqSpellQuestion: 'Напишите по-нидерландски название места, отмеченного на карте:',
+                dotAria: 'точка',
+                miniMapAria: 'Карта Западной Европы, одно место отмечено точкой',
+                miniMapError: 'Мини-карта не загрузилась.'
             },
             en: {
                 dir: 'ltr',
@@ -827,7 +871,7 @@
                 navQuiz: 'Quiz & Spelling',
                 modeExplore: '🔍 Free Explore Mode',
                 modeFind: '🎯 Quiz: "Find on Map"',
-                modeName: '❓ Quiz: "Name the Symbol"',
+                modeName: '❓ Quiz: "Name the Dot"',
                 zoomAll: '🌍 All West-Europe',
                 zoomBelgium: '🔍 Zoom Belgium (K, L, l, g, 3, 9)',
                 zoomUk: '🔍 UK & Ireland',
@@ -886,10 +930,9 @@
                 btnNext: 'Next ⏭️',
                 sidebarListTitle: '📋 All 48 Map Items',
                 quickSearchPlaceholder: 'Quick filter...',
-                findPrompt: 'Click the correct symbol on the map for:',
-                findWait: 'Click the matching letter or number on the map...',
-                namePromptPrefix: 'What is the Dutch name for symbol',
-                nameHintPrefix: 'Hint:',
+                findPrompt: 'Click the correct dot on the map for:',
+                findWait: 'Click the matching dot on the map...',
+                namePrompt: 'What is the Dutch name of the orange dot on the map?',
                 nameWait: 'Choose the correct answer from the 4 options...',
                 correctMsg: '✅ Awesome!',
                 wrongPinMsg: '❌ You clicked',
@@ -908,7 +951,7 @@
                 thActions: 'Actions',
                 fcHeading: '🃏 Study Flashcards',
                 fcShuffle: '🔀 Shuffle',
-                fcFrontPrompt: 'Map Symbol & English Name:',
+                fcFrontPrompt: 'Which place is marked with the dot?',
                 fcFrontHint: '👆 Click the card to flip and hear in Dutch',
                 fcBackLabel: 'Dutch Name (Nederlands)',
                 fcSpeakAgain: '🔊 Listen Again',
@@ -922,9 +965,11 @@
                 wqCheckBtn: 'Check Answer ✔️',
                 wqWaitFeedback: 'Select or type the answer in Dutch...',
                 wqNextBtn: 'Next Question ⏭️',
-                wqMcQuestion: 'How do you say in Dutch:',
-                wqSpellQuestion: 'Type in Dutch:',
-                symbolWord: 'symbol'
+                wqMcQuestion: 'What is the Dutch name of the place marked on the map?',
+                wqSpellQuestion: 'Type the Dutch name of the place marked on the map:',
+                dotAria: 'dot',
+                miniMapAria: 'Map of Western Europe with one place marked by a dot',
+                miniMapError: "The small map didn't load."
             },
             nl: {
                 dir: 'ltr',
@@ -994,10 +1039,9 @@
                 btnNext: 'Volgende ⏭️',
                 sidebarListTitle: '📋 Alle 48 namen op de kaart',
                 quickSearchPlaceholder: 'Snel zoeken...',
-                findPrompt: 'Klik op de juiste letter of cijfer voor:',
-                findWait: 'Klik op het juiste symbool op de kaart...',
-                namePromptPrefix: 'Welke naam hoort bij symbool',
-                nameHintPrefix: 'Categorie:',
+                findPrompt: 'Klik op de juiste stip op de kaart voor:',
+                findWait: 'Klik op de juiste stip op de kaart...',
+                namePrompt: 'Welke naam hoort bij de oranje stip op de kaart?',
                 nameWait: 'Kies het juiste antwoord uit de 4 opties...',
                 correctMsg: '✅ Goed gedaan!',
                 wrongPinMsg: '❌ Je klikte op',
@@ -1016,8 +1060,8 @@
                 thActions: 'Acties',
                 fcHeading: '🃏 Flitskaarten (Flashcards)',
                 fcShuffle: '🔀 Schudden',
-                fcFrontPrompt: 'Code op de kaart & Beschrijving:',
-                fcFrontHint: '👆 Klik op de kaart om het antwoord te zien en te horen',
+                fcFrontPrompt: 'Welke plaats hoort bij de stip?',
+                fcFrontHint: '👆 Tik of klik om het antwoord te zien en te horen',
                 fcBackLabel: 'Naam op de kaart (Nederlands)',
                 fcSpeakAgain: '🔊 Luister opnieuw',
                 fcBackHint: 'Klik om terug te draaien',
@@ -1030,9 +1074,11 @@
                 wqCheckBtn: 'Controleer ✔️',
                 wqWaitFeedback: 'Kies of typ het juiste antwoord...',
                 wqNextBtn: 'Volgende vraag ⏭️',
-                wqMcQuestion: 'Welke naam hoort bij:',
-                wqSpellQuestion: 'Schrijf de juiste naam voor:',
-                symbolWord: 'code'
+                wqMcQuestion: 'Welke naam hoort bij de stip op de kaart?',
+                wqSpellQuestion: 'Schrijf de naam van de plaats bij de stip:',
+                dotAria: 'stip',
+                miniMapAria: 'Kaart van West-Europa met één plaats aangegeven met een stip',
+                miniMapError: 'Het kaartje is niet geladen.'
             }
         };
 
@@ -1703,6 +1749,16 @@
         const STUDY_BOUNDS = [[42.3, -10.5], [59.0, 15.0]];
         const STUDY_COUNTRIES = ['Ireland', 'United Kingdom', 'Netherlands', 'Belgium', 'Luxembourg', 'France', 'Germany'];
 
+        // נהרות (f: Theems, g: Schelde, h: Maas, i: Rijn, j: Seine, k: Rhône) - משותף למפה הגדולה ולמפה הקטנה
+        const RIVER_LINES = [
+            { name: 'Theems', coords: [[51.7, -1.8], [51.6, -1.2], [51.48, -0.5], [51.50, 0.0], [51.48, 0.6]] },
+            { name: 'Schelde', coords: [[50.0, 3.2], [50.45, 3.5], [50.8, 3.6], [51.05, 3.72], [51.22, 4.40], [51.42, 4.15], [51.45, 3.55]] },
+            { name: 'Maas', coords: [[48.0, 5.6], [49.2, 5.4], [50.1, 4.9], [50.46, 4.86], [50.64, 5.57], [51.1, 5.8], [51.75, 5.0], [51.9, 4.1]] },
+            { name: 'Rijn', coords: [[47.55, 7.6], [48.57, 7.78], [49.5, 8.4], [50.0, 8.2], [50.36, 7.6], [50.94, 6.96], [51.45, 6.7], [51.85, 6.1], [51.95, 4.1]] },
+            { name: 'Seine', coords: [[47.8, 4.5], [48.3, 3.5], [48.86, 2.35], [49.44, 1.09], [49.48, 0.12]] },
+            { name: 'Rhône', coords: [[46.2, 6.1], [45.8, 5.4], [45.76, 4.84], [44.9, 4.8], [43.9, 4.8], [43.35, 4.8]] }
+        ];
+
         function setBaseMap(style) {
             if (currentTileLayer) { map.removeLayer(currentTileLayer); currentTileLayer = null; }
             const def = tileLayerDefs[style];
@@ -1716,13 +1772,23 @@
             }
         }
 
+        // Loads europe.geojson once for the big map and the mini maps. A failed load is forgotten, so Retry fetches again.
+        let europeGeoPromise = null;
+        function getEuropeGeo() {
+            if (!europeGeoPromise) {
+                europeGeoPromise = fetch('europe.geojson')
+                    .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+                    .catch(err => { europeGeoPromise = null; throw err; });
+            }
+            return europeGeoPromise;
+        }
+
         // גבולות מדינות מקומיים (europe.geojson נבנה מ-Natural Earth, נחלת הכלל) - כמו באטלס בית ספר.
         // אם הטעינה נכשלת מציגים הודעה עם "נסו שוב" ו"מפה מקוונת"; מפה חיצונית נטענת רק אם המבקר בוחר בה.
         function loadLocalBorders(studyCountries) {
             const errorBox = document.getElementById('map-load-error');
             errorBox.classList.add('hidden');
-            return fetch('europe.geojson')
-                .then(res => { if (!res.ok) throw new Error('HTTP ' + res.status); return res.json(); })
+            return getEuropeGeo()
                 .then(geoData => {
                     if (vectorCountriesLayer) map.removeLayer(vectorCountriesLayer);
                     vectorCountriesLayer = L.geoJSON(geoData, {
@@ -1788,14 +1854,7 @@
             }).addTo(map);
 
             // 2. נהרות מדויקים (f: Theems, g: Schelde, h: Maas, i: Rijn, j: Seine, k: Rhône)
-            const rivers = [
-                { name: 'Theems', coords: [[51.7, -1.8], [51.6, -1.2], [51.48, -0.5], [51.50, 0.0], [51.48, 0.6]] },
-                { name: 'Schelde', coords: [[50.0, 3.2], [50.45, 3.5], [50.8, 3.6], [51.05, 3.72], [51.22, 4.40], [51.42, 4.15], [51.45, 3.55]] },
-                { name: 'Maas', coords: [[48.0, 5.6], [49.2, 5.4], [50.1, 4.9], [50.46, 4.86], [50.64, 5.57], [51.1, 5.8], [51.75, 5.0], [51.9, 4.1]] },
-                { name: 'Rijn', coords: [[47.55, 7.6], [48.57, 7.78], [49.5, 8.4], [50.0, 8.2], [50.36, 7.6], [50.94, 6.96], [51.45, 6.7], [51.85, 6.1], [51.95, 4.1]] },
-                { name: 'Seine', coords: [[47.8, 4.5], [48.3, 3.5], [48.86, 2.35], [49.44, 1.09], [49.48, 0.12]] },
-                { name: 'Rhône', coords: [[46.2, 6.1], [45.8, 5.4], [45.76, 4.84], [44.9, 4.8], [43.9, 4.8], [43.35, 4.8]] }
-            ];
+            const rivers = RIVER_LINES;
             rivers.forEach(r => {
                 L.polyline(r.coords, {
                     color: '#0284c7',
@@ -1833,6 +1892,124 @@
             ], { color: '#059669', weight: 2, dashArray: '5, 5', interactive: false }).addTo(map);
         }
 
+
+        // ==========================================================
+        // Mini map (flashcards and written quiz): Western Europe with ONE place marked by a dot.
+        // No letters, numbers or names, so children learn where a place is (like the blind map in the school test).
+        // Places with a close neighbour (e.g. Antwerpen and Brussel) also get a zoomed inset in the bottom-left corner.
+        // Drawn as SVG from the local europe.geojson; nothing is loaded from outside.
+        // ==========================================================
+        const MINI_BOUNDS = { w: -10.8, e: 15.2, s: 41.5, n: 59.2 };
+        const MINI_W = 300;
+        function mercY(lat) { return Math.log(Math.tan(Math.PI / 4 + lat * Math.PI / 360)); }
+        const MINI_H = Math.round(MINI_W * (mercY(MINI_BOUNDS.n) - mercY(MINI_BOUNDS.s)) / ((MINI_BOUNDS.e - MINI_BOUNDS.w) * Math.PI / 180));
+        function miniProject(lat, lng) {
+            return [
+                (lng - MINI_BOUNDS.w) / (MINI_BOUNDS.e - MINI_BOUNDS.w) * MINI_W,
+                (mercY(MINI_BOUNDS.n) - mercY(lat)) / (mercY(MINI_BOUNDS.n) - mercY(MINI_BOUNDS.s)) * MINI_H
+            ];
+        }
+        function miniLinePath(coords, close) {
+            // coords: [lng, lat] pairs (GeoJSON order). Points closer than 0.35px to the previous one are skipped.
+            let d = '', last = null;
+            coords.forEach((c, i) => {
+                const [x, y] = miniProject(c[1], c[0]);
+                if (last && i < coords.length - 1 && Math.abs(x - last[0]) < 0.35 && Math.abs(y - last[1]) < 0.35) return;
+                d += (d ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+                last = [x, y];
+            });
+            return d + (close ? 'Z' : '');
+        }
+        let miniLandMarkup = null; // built once from the GeoJSON
+        function buildMiniLandMarkup(geoData) {
+            const other = [], study = [];
+            geoData.features.forEach(f => {
+                const g = f.geometry;
+                if (!g) return;
+                const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : [];
+                const d = polys.map(poly => poly.map(ring => miniLinePath(ring, true)).join('')).join('');
+                const name = f.properties.name || f.properties.NAME || '';
+                (STUDY_COUNTRIES.includes(name) ? study : other).push(d);
+            });
+            const rivers = RIVER_LINES.map(r => miniLinePath(r.coords.map(([lat, lng]) => [lng, lat]), false)).join('');
+            return `<path class="mm-land" d="${other.join('')}"/><path class="mm-land mm-study" d="${study.join('')}"/><path class="mm-river" d="${rivers}"/>`;
+        }
+        // A place needs a zoomed inset when another place is less than ~0.9° away
+        function miniNeedsInset(item) {
+            const k = Math.cos(item.lat * Math.PI / 180);
+            return topoData.some(o => o.id !== item.id && Math.hypot((o.lng - item.lng) * k, o.lat - item.lat) < 0.9);
+        }
+        let miniClipSeq = 0;
+        function miniMapSvg(item, t) {
+            const [x, y] = miniProject(item.lat, item.lng);
+            const land = miniLandMarkup || '';
+            let inset = '';
+            let mainDot = `<circle class="mm-halo" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="11"/><circle class="mm-dot" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="5.5"/>`;
+            if (miniNeedsInset(item)) {
+                const zoom = 4;
+                const size = Math.round(MINI_W * 0.44);          // inset box size in the drawing
+                const ix = 6, iy = MINI_H - size - 6;              // bottom-left corner (sea and Spain, never a study place)
+                const half = size / zoom / 2;                      // half of the zoomed area, in drawing units
+                const clipId = 'mm-clip-' + (++miniClipSeq);
+                mainDot = `<rect class="mm-zoom-box" x="${(x - half).toFixed(1)}" y="${(y - half).toFixed(1)}" width="${(half * 2).toFixed(1)}" height="${(half * 2).toFixed(1)}"/>`;
+                inset = `
+                    <clipPath id="${clipId}"><rect x="${ix}" y="${iy}" width="${size}" height="${size}"/></clipPath>
+                    <g clip-path="url(#${clipId})">
+                        <rect class="mm-sea" x="${ix}" y="${iy}" width="${size}" height="${size}"/>
+                        <g transform="translate(${(ix + size / 2 - x * zoom).toFixed(1)} ${(iy + size / 2 - y * zoom).toFixed(1)}) scale(${zoom})">${land}</g>
+                        <circle class="mm-halo" cx="${ix + size / 2}" cy="${iy + size / 2}" r="12"/>
+                        <circle class="mm-dot" cx="${ix + size / 2}" cy="${iy + size / 2}" r="6"/>
+                    </g>
+                    <rect class="mm-frame" x="${ix}" y="${iy}" width="${size}" height="${size}"/>`;
+            }
+            return `<svg class="mini-map" viewBox="0 0 ${MINI_W} ${MINI_H}" role="img" aria-label="${t.miniMapAria}">
+                <rect class="mm-sea" width="${MINI_W}" height="${MINI_H}"/>${land}${mainDot}${inset}</svg>`;
+        }
+        // Draws the mini map for `item` into the element with id `boxId`. If the map file fails, explain it and offer Retry.
+        function renderMiniMap(boxId, item) {
+            const box = document.getElementById(boxId);
+            if (!box || !item) return;
+            box.dataset.itemId = item.id;
+            const draw = () => {
+                if (box.dataset.itemId !== item.id) return; // a newer question/card was shown meanwhile
+                box.innerHTML = miniMapSvg(item, uiTranslations[currentLang]);
+            };
+            if (miniLandMarkup) { draw(); return; }
+            box.innerHTML = `<div class="aspect-[300/325] bg-sky-100"></div>`;
+            getEuropeGeo()
+                .then(geo => { if (!miniLandMarkup) miniLandMarkup = buildMiniLandMarkup(geo); draw(); })
+                .catch(() => {
+                    if (box.dataset.itemId !== item.id) return;
+                    const t = uiTranslations[currentLang];
+                    box.innerHTML = `<div class="aspect-[300/325] bg-amber-50 text-amber-950 flex flex-col items-center justify-center gap-2 p-3 text-xs font-semibold text-center">
+                        <p>${t.miniMapError}</p>
+                        <button type="button" class="mm-retry bg-teal-700 hover:bg-teal-800 text-white font-bold px-3 py-1.5 rounded-lg">${t.mapRetry}</button></div>`;
+                    box.querySelector('.mm-retry').addEventListener('click', (e) => { e.stopPropagation(); renderMiniMap(boxId, item); });
+                });
+        }
+
+        // Text without the map codes in brackets, e.g. "Hoofdstad van Ierland (1)" -> "Hoofdstad van Ierland".
+        // Quizzes and flashcards never show codes: the school test has plain dots only.
+        function withoutCodes(text) {
+            return String(text || '')
+                .replace(/\s*\([^)]*(?:letter l\b|lowercase l|буква l|אות l|number 9|цифра 9|כ-9)[^)]*\)/g, '')
+                .replace(/\s*\((?:[A-Za-z]{1,2}|\d{1,2})(?:\s*-\s*[^)]*)?\)/g, '')
+                .replace(/\s+\d{1,2}\)/g, ')')
+                .replace(/\s+([.,])/g, '$1')
+                .trim();
+        }
+        // Name in the child's language for quizzes. Dutch has no translation (the "name" is a code hint), so none is shown.
+        function getQuizLocalName(item) {
+            return currentLang === 'nl' ? '' : withoutCodes(getItemLocalName(item));
+        }
+        // Wrong answers come from the same category first (countries with countries), so the category gives nothing away.
+        function pickDistractors(target, n) {
+            const shuffle = arr => arr.map(v => [Math.random(), v]).sort((a, b) => a[0] - b[0]).map(p => p[1]);
+            const same = shuffle(topoData.filter(i => i.id !== target.id && i.cat === target.cat));
+            const rest = shuffle(topoData.filter(i => i.id !== target.id && i.cat !== target.cat));
+            return [...same, ...rest].slice(0, n);
+        }
+
         function getCategoryPinClass(cat) {
             if (cat === 'Plus TOPO') return 'pin-Plus';
             return 'pin-' + cat;
@@ -1851,17 +2028,23 @@
             const filterCat = document.getElementById('map-filter-select').value;
             const showLabels = document.getElementById('chk-show-labels').checked && mapInteractionMode === 'explore';
 
+            const isQuiz = mapInteractionMode !== 'explore';
             const visibleItems = topoData.filter(item => filterCat === 'all' || (filterCat === 'hard' && hardItems.includes(item.id)) || item.cat === filterCat);
+            // In a quiz the dots are added west to east, so Tab order and the screen-reader numbers give no hint of the category
+            if (isQuiz) visibleItems.sort((a, b) => a.lng - b.lng);
 
-            visibleItems.forEach(item => {
+            visibleItems.forEach((item, index) => {
                 const isSelected = selectedItem && selectedItem.id === item.id;
                 const pinClass = getCategoryPinClass(item.cat);
 
                 // במצב "זהה את הסימון", הסימון הנשאל מודגש בכתום
                 const isTargetHighlight = (mapInteractionMode === 'name' && mapQuizTarget && mapQuizTarget.id === item.id);
 
-                const html = `
-                    <div id="pin-dom-${item.id}" class="topo-pin ${pinClass} ${(isSelected || isTargetHighlight) ? 'selected-pin' : ''}">
+                // Quiz: a plain dot, no letter or number (like the school test). Explore: the code, for checking the atlas.
+                const html = isQuiz
+                    ? `<div id="pin-dom-${item.id}" class="topo-pin quiz-dot ${isTargetHighlight ? 'selected-pin' : ''}"></div>`
+                    : `
+                    <div id="pin-dom-${item.id}" class="topo-pin ${pinClass} ${isSelected ? 'selected-pin' : ''}">
                         <span>${item.code}</span>
                         ${showLabels ? `<span class="topo-pin-label">${item.nl}</span>` : ''}
                     </div>
@@ -1874,10 +2057,10 @@
                     iconAnchor: [14, 14]
                 });
 
-                // בזמן חידון לא מגלים את השם בתווית הנגישות - רק את הסימון
-                const accessibleName = mapInteractionMode === 'explore'
-                    ? `${t.pinAria} ${item.code}: ${item.nl}`
-                    : `${t.pinAria} ${item.code}`;
+                // בזמן חידון לא מגלים את השם או הקוד בתווית הנגישות - רק "נקודה" ומספר לפי הסדר ממערב למזרח
+                const accessibleName = isQuiz
+                    ? `${t.dotAria} ${index + 1}`
+                    : `${t.pinAria} ${item.code}: ${item.nl}`;
 
                 const marker = L.marker([item.lat, item.lng], { icon: icon, keyboard: true, title: mapInteractionMode === 'explore' ? item.nl : '' }).addTo(map);
                 marker.on('click', () => handleMarkerClick(item));
@@ -1918,14 +2101,15 @@
                     mapQuizLocked = true;
                     mapQuizScore++;
                     if (pinEl) pinEl.classList.add('correct-pin');
-                    setMapQuizFeedback(`${t.correctMsg} ${item.code} = ${item.nl} (${getItemLocalName(item)})`, 'text-emerald-700');
+                    const local = getQuizLocalName(item);
+                    setMapQuizFeedback(`${t.correctMsg} ${item.nl}${local ? ` (${local})` : ''}`, 'text-emerald-700');
                     speakDutch(item.nl);
                     updateMapQuizScoreUI();
                     cancelPendingAdvance();
                     mapQuizAdvanceTimer = setTimeout(() => { mapQuizAdvanceTimer = null; nextMapQuizTurn(); }, 1100);
                 } else {
                     if (pinEl) pinEl.classList.add('wrong-pin');
-                    setMapQuizFeedback(`${t.wrongPinMsg} ${item.code} (${item.nl}). ${t.searchForMsg} ${mapQuizTarget.nl}!`, 'text-rose-700');
+                    setMapQuizFeedback(`${t.wrongPinMsg} ${item.nl}. ${t.searchForMsg} ${mapQuizTarget.nl}!`, 'text-rose-700');
                     speakDutch(item.nl);
                     updateMapQuizScoreUI();
                 }
@@ -2026,6 +2210,8 @@
             btnExplore.setAttribute('aria-pressed', String(mode === 'explore'));
             btnFind.setAttribute('aria-pressed', String(mode === 'find'));
             btnName.setAttribute('aria-pressed', String(mode === 'name'));
+            // The colour/code legend describes the Explore pins; quiz dots are all alike
+            document.getElementById('map-legend-items').classList.toggle('hidden', mode !== 'explore');
 
             const exploreView = document.getElementById('side-explore-view');
             const quizView = document.getElementById('side-quiz-view');
@@ -2079,21 +2265,20 @@
             if (mapInteractionMode === 'find') {
                 document.getElementById('map-quiz-prompt-label').textContent = t.findPrompt;
                 document.getElementById('map-quiz-target-main').textContent = mapQuizTarget.nl;
-                document.getElementById('map-quiz-target-sub').textContent = `${getItemPron(mapQuizTarget)} • ${getItemLocalName(mapQuizTarget)} (${getItemCatLocal(mapQuizTarget)})`;
+                const local = getQuizLocalName(mapQuizTarget);
+                document.getElementById('map-quiz-target-sub').textContent = `${getItemPron(mapQuizTarget)} • ${local ? `${local} (${getItemCatLocal(mapQuizTarget)})` : getItemCatLocal(mapQuizTarget)}`;
                 choicesBox.classList.add('hidden');
                 setMapQuizFeedback(t.findWait, 'text-slate-500');
                 renderLeafletMarkers();
                 speakDutch(mapQuizTarget.nl);
             } else if (mapInteractionMode === 'name') {
-                document.getElementById('map-quiz-prompt-label').textContent = `${t.namePromptPrefix} [${mapQuizTarget.code}] (${getItemCatLocal(mapQuizTarget)})?`;
-                document.getElementById('map-quiz-target-main').textContent = `${t.symbolWord}: ${mapQuizTarget.code}`;
-                document.getElementById('map-quiz-target-sub').textContent = `${t.nameHintPrefix} ${getItemLocalName(mapQuizTarget)}`;
+                // Only the orange dot on the map shows which place is asked: no code and no translated name as a hint
+                document.getElementById('map-quiz-prompt-label').textContent = t.namePrompt;
+                document.getElementById('map-quiz-target-main').textContent = '🟠';
+                document.getElementById('map-quiz-target-sub').textContent = getItemCatLocal(mapQuizTarget);
 
-                // 4 אפשרויות
-                const distractors = topoData
-                    .filter(i => i.id !== mapQuizTarget.id)
-                    .sort(() => Math.random() - 0.5)
-                    .slice(0, 3);
+                // 4 אפשרויות, מאותה קטגוריה ככל האפשר
+                const distractors = pickDistractors(mapQuizTarget, 3);
                 const opts = [mapQuizTarget, ...distractors].sort(() => Math.random() - 0.5);
 
                 choicesBox.classList.remove('hidden');
@@ -2120,7 +2305,8 @@
                 mapQuizLocked = true;
                 mapQuizScore++;
                 btn.className = "bg-emerald-700 text-white border border-emerald-800 rounded-xl py-1.5 px-2 text-xs font-extrabold truncate";
-                setMapQuizFeedback(`${t.correctMsg} ${mapQuizTarget.code} = ${mapQuizTarget.nl}`, 'text-emerald-700');
+                const local = getQuizLocalName(mapQuizTarget);
+                setMapQuizFeedback(`${t.correctMsg} ${mapQuizTarget.nl}${local ? ` (${local})` : ''}`, 'text-emerald-700');
                 speakDutch(mapQuizTarget.nl);
                 updateMapQuizScoreUI();
                 cancelPendingAdvance();
@@ -2317,12 +2503,13 @@
 
             document.getElementById('fc-front-cat').textContent = `${getItemCatLocal(item)} (${item.cat})`;
             document.getElementById('fc-counter').textContent = `${fcIndex + 1} / ${fcDeck.length}`;
-            document.getElementById('fc-front-code').textContent = item.code;
-            document.getElementById('fc-front-he').textContent = currentLang === 'nl' ? getItemDesc(item) : getItemLocalName(item);
+            // Front: only the location on a mini map. Back: the names, pronunciation and a short description (without codes).
+            renderMiniMap('fc-front-map', item);
 
             document.getElementById('fc-back-nl').textContent = item.nl;
+            document.getElementById('fc-back-local').textContent = getQuizLocalName(item);
             document.getElementById('fc-back-pron').textContent = `${t.lblPron} ${getItemPron(item)}`;
-            document.getElementById('fc-back-tip').textContent = getItemDesc(item);
+            document.getElementById('fc-back-tip').textContent = withoutCodes(getItemDesc(item));
         }
 
         // ==========================================================
@@ -2360,24 +2547,19 @@
 
             wqCurrent = pool[Math.floor(Math.random() * pool.length)];
 
-            document.getElementById('wq-badge').textContent = `${getItemCatLocal(wqCurrent)} (${wqCurrent.cat}) • ${t.symbolWord}: ${wqCurrent.code}`;
+            document.getElementById('wq-badge').textContent = `${getItemCatLocal(wqCurrent)} (${wqCurrent.cat})`;
+            // The question is the location on the mini map; no code, name or description is shown before answering
+            renderMiniMap('wq-map', wqCurrent);
             document.getElementById('wq-feedback-box').className = "text-xs sm:text-sm font-bold text-slate-500";
             document.getElementById('wq-feedback-box').textContent = t.wqWaitFeedback;
-
-            const promptTarget = currentLang === 'nl'
-                ? `[${wqCurrent.code}] (${getItemDesc(wqCurrent)})`
-                : `"${getItemLocalName(wqCurrent)}" (${t.symbolWord} ${wqCurrent.code})`;
 
             if (wqMode === 'mc') {
                 document.getElementById('wq-mc-area').classList.remove('hidden');
                 document.getElementById('wq-spell-area').classList.add('hidden');
-                document.getElementById('wq-title').textContent = `${t.wqMcQuestion} ${promptTarget}?`;
-                document.getElementById('wq-subtitle').textContent = getItemDesc(wqCurrent);
+                document.getElementById('wq-title').textContent = t.wqMcQuestion;
+                document.getElementById('wq-subtitle').textContent = '';
 
-                const distractors = topoData
-                    .filter(i => i.id !== wqCurrent.id)
-                    .sort(() => Math.random() - 0.5)
-                    .slice(0, 3);
+                const distractors = pickDistractors(wqCurrent, 3);
                 const opts = [wqCurrent, ...distractors].sort(() => Math.random() - 0.5);
 
                 document.getElementById('wq-mc-area').innerHTML = opts.map(o => `
@@ -2390,7 +2572,7 @@
             } else {
                 document.getElementById('wq-mc-area').classList.add('hidden');
                 document.getElementById('wq-spell-area').classList.remove('hidden');
-                document.getElementById('wq-title').textContent = `${t.wqSpellQuestion} ${promptTarget}`;
+                document.getElementById('wq-title').textContent = t.wqSpellQuestion;
                 document.getElementById('wq-subtitle').textContent = `${t.lblPron} ${getItemPron(wqCurrent)}`;
 
                 const inp = document.getElementById('wq-spell-input');

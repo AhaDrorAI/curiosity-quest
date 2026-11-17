@@ -26,6 +26,11 @@ check('pins are keyboard buttons', (await page.locator('.leaflet-marker-icon[rol
 await page.click('#btn-mode-find');
 const target = await page.textContent('#map-quiz-target-main');
 check('Find-on-map prompt visible', await page.isVisible('#map-quiz-target-main'), `target: ${target}`);
+// Quiz pins are plain dots: no letter or number (the school test has unlabeled dots)
+check('quiz pins are plain dots without codes', await page.evaluate(() => {
+  const pins = [...document.querySelectorAll('.topo-pin')];
+  return pins.length === 48 && pins.every((p) => p.classList.contains('quiz-dot') && p.textContent.trim() === '');
+}));
 // Click the correct pin via keyboard
 const id = await page.evaluate(() => mapQuizTarget.id);
 await page.focus(`.leaflet-marker-icon[data-item-id="${id}"]`);
@@ -42,6 +47,8 @@ await page.click('#btn-mode-explore');
 await page.click('#lang-btn-ru');
 check('language switch to Russian', (await page.getAttribute('html', 'lang')) === 'ru' && (await page.getAttribute('#lang-btn-ru', 'aria-pressed')) === 'true');
 await page.click('[data-tab=quiz]');
+await page.waitForSelector('#wq-map svg .mm-dot');
+check('written quiz asks by location (mini map), not by code', await page.evaluate(() => !document.getElementById('wq-question-box').textContent.includes('(' + wqCurrent.code + ')') && !document.getElementById('wq-question-box').textContent.includes('[' + wqCurrent.code + ']')));
 await page.click('#btn-qmode-spell');
 await page.fill('#wq-spell-input', 'xxxx');
 await page.click('#btn-wq-check-spell');
@@ -51,6 +58,8 @@ check('spelling feedback follows language (ru)', /Правильно/.test(fb), 
 // Flashcards: Flip button flips, hidden face is inert
 await page.click('[data-tab=flashcards]');
 await page.click('#btn-fc-flip');
+await page.waitForSelector('#fc-front-map svg .mm-dot');
+check('flashcard front shows a mini map, no code', await page.evaluate(() => !/\b[A-Z]\b|\b\d{1,2}\b/.test(document.getElementById('fc-face-front').querySelector('#fc-front-map').textContent)));
 check('Flip button flips the card', await page.evaluate(() => document.getElementById('fc-face-front').inert && !document.getElementById('fc-face-back').inert));
 
 // Vocab tab renders tables
