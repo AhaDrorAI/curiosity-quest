@@ -64,6 +64,9 @@
         <button type="button" data-tab="texts" aria-pressed="false" data-t="tabTexts">Teksten</button>
       </nav>
 
+      <!-- shown only when this device has no Dutch voice of its own (read-aloud never uses online voices) -->
+      <p class="speech-note" id="speech-note" role="status" data-t="noVoice" hidden></p>
+
       <noscript><p class="panel">JavaScript is nodig voor deze oefeningen. / JavaScript is needed for these exercises.</p></noscript>
 
       <!-- Word groups -->
@@ -86,11 +89,15 @@
         <div id="cards-area">
           <div class="flashcard" id="flashcard">
             <div class="card-face card-front" id="card-front" lang="nl" dir="ltr">
-              <p class="card-word" id="card-word"></p>
+              <div class="word-line word-line-center">
+                <p class="card-word" id="card-word"></p><span class="speak-slot" id="card-word-speak"></span>
+              </div>
               <p class="card-hint" data-t="flipHint"></p>
             </div>
             <div class="card-face card-back" id="card-back" hidden>
-              <p class="card-word-small" id="card-word-small" lang="nl" dir="ltr"></p>
+              <div class="word-line">
+                <p class="card-word-small" id="card-word-small" lang="nl" dir="ltr"></p><span class="speak-slot" id="card-small-speak"></span>
+              </div>
               <div id="card-details"></div>
             </div>
           </div>
@@ -138,7 +145,9 @@
   <dialog id="word-dialog" aria-labelledby="dlg-word">
     <div class="dialog-inner">
       <p class="dlg-group" id="dlg-group"></p>
-      <h2 class="dlg-word" id="dlg-word" lang="nl" dir="ltr"></h2>
+      <div class="word-line">
+        <h2 class="dlg-word" id="dlg-word" lang="nl" dir="ltr"></h2><span class="speak-slot" id="dlg-speak"></span>
+      </div>
       <div id="dlg-details"></div>
       <div class="dlg-actions">
         <button type="button" class="btn btn-star" id="dlg-star" aria-pressed="false"><span aria-hidden="true">★</span> <span data-t="star">Markeer om te herhalen</span></button>

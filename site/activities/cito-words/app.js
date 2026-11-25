@@ -50,6 +50,9 @@
       why: 'Waarom?', lookUp: 'Woorden uit deze vraag',
       textDone: 'Tekst klaar: {s} van de {n} goed.', nextText: 'Volgende tekst', readAgain: 'Opnieuw',
       close: 'Sluiten',
+      word: 'Woord', listenWord: 'Luister naar het woord', listenMeaning: 'Luister naar de betekenis', listenExample: 'Luister naar het voorbeeld',
+      listenQuestion: 'Lees de vraag en de antwoorden voor', listenWhy: 'Lees de uitleg voor', readText: 'Lees de tekst voor', stop: 'Stop met voorlezen',
+      noVoice: 'Voorlezen werkt hier niet: dit apparaat heeft geen eigen Nederlandse stem. Je kunt er een toevoegen in de instellingen van je apparaat, bij Spraak of Tekst-naar-spraak.',
       source: 'De woorden en hun betekenissen komen uit een woordenlijst van school. De voorbeeldzinnen, vertalingen, tips en oefenteksten zijn voor deze site geschreven. Dit is geen officieel materiaal van Cito.'
     },
     he: {
@@ -82,6 +85,9 @@
       why: 'למה?', lookUp: 'מילים מהשאלה',
       textDone: 'סיימתם את הטקסט: {s} מתוך {n} נכונות.', nextText: 'לטקסט הבא', readAgain: 'שוב',
       close: 'סגירה',
+      word: 'מילה', listenWord: 'השמעת המילה', listenMeaning: 'השמעת הפירוש', listenExample: 'השמעת הדוגמה',
+      listenQuestion: 'הקראת השאלה והתשובות', listenWhy: 'הקראת ההסבר', readText: 'הקראת הטקסט', stop: 'עצירת ההקראה',
+      noVoice: 'ההקראה לא עובדת כאן: אין במכשיר הזה קול מובנה בהולנדית. אפשר להוסיף קול בהגדרות המכשיר, בחלק של דיבור או המרת טקסט לדיבור.',
       source: 'המילים והפירושים שלהן לקוחים מרשימת מילים של בית הספר. משפטי הדוגמה, התרגומים, הטיפים והטקסטים נכתבו לאתר הזה. זה לא חומר רשמי של Cito.'
     },
     en: {
@@ -114,6 +120,9 @@
       why: 'Why?', lookUp: 'Words in this question',
       textDone: 'Text finished: {s} of {n} right.', nextText: 'Next text', readAgain: 'Again',
       close: 'Close',
+      word: 'Word', listenWord: 'Listen to the word', listenMeaning: 'Listen to the meaning', listenExample: 'Listen to the example',
+      listenQuestion: 'Read the question and answers aloud', listenWhy: 'Read the explanation aloud', readText: 'Read the text aloud', stop: 'Stop reading',
+      noVoice: 'Read-aloud doesn\'t work here: this device has no Dutch voice of its own. You can add one in your device settings, under Speech or Text-to-speech.',
       source: 'The words and their meanings come from a school word list. The example sentences, translations, tips and practice texts were written for this site. This is not official Cito material.'
     }
   };
@@ -153,6 +162,8 @@
     return a;
   }
   function display(w) { return (w.art ? w.art + ' ' : '') + w.w; }
+  // For read-aloud: "informeren / informatie" and "uitleg(gen)" are spoken as their separate forms, without slash or brackets
+  function spoken(w) { return (w.art ? w.art + ' ' : '') + (/[\/()]/.test(w.w) && w.alt ? w.alt.join(', ') : w.w); }
 
   // ---------- Stars ("needs review") ----------
   var stars = (function () {
@@ -198,6 +209,67 @@
     return window.CW_SAME_MEANING.some(function (fam) { return fam.indexOf(a) > -1 && fam.indexOf(b) > -1; });
   }
 
+  // ---------- Read aloud (device voices only) ----------
+  // Only voices that run on the device itself are used (localService). Online voices, such as Chrome's
+  // "Google Nederlands", send the text to another company, so they are never chosen. Without a device
+  // voice the speaker buttons stay hidden and a note says how to add one.
+  var speech = {
+    synth: ('speechSynthesis' in window && typeof window.SpeechSynthesisUtterance === 'function') ? window.speechSynthesis : null,
+    voice: null, checked: false, button: null, kind: null
+  };
+  var ICON_SPEAK = '<svg class="i-play" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
+    '<svg class="i-stop" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
+  function pickVoice() {
+    var voices = [];
+    try { voices = speech.synth.getVoices() || []; } catch (e) { voices = []; }
+    var local = voices.filter(function (v) { return v.localService === true && /^nl([-_]|$)/i.test(v.lang || ''); });
+    local.sort(function (a, b) { return (/^nl[-_]nl/i.test(a.lang) ? 0 : 1) - (/^nl[-_]nl/i.test(b.lang) ? 0 : 1); });
+    return local[0] || null;
+  }
+  function updateVoice(final) {
+    speech.voice = speech.synth ? pickVoice() : null;
+    if (speech.voice || final) speech.checked = true;
+    document.documentElement.classList.toggle('cw-can-speak', !!speech.voice);
+    $('speech-note').hidden = !(speech.checked && !speech.voice);
+    if (!speech.voice) stopSpeaking();
+  }
+  function setPlaying(btn, on) {
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    var label = on ? t('stop') : btn.getAttribute('data-label');
+    var visible = btn.querySelector('.speak-label');
+    if (visible) visible.textContent = label; else btn.setAttribute('aria-label', label);
+    btn.title = label;
+  }
+  function stopSpeaking() {
+    if (speech.synth) { try { speech.synth.cancel(); } catch (e) {} }
+    if (speech.button) setPlaying(speech.button, false);
+    speech.button = null; speech.kind = null;
+  }
+  function speak(text, btn, kind) {
+    if (!speech.synth || !speech.voice) return;
+    var same = speech.button === btn;
+    stopSpeaking();
+    if (same) return; // a second press on the same button stops
+    var u = new window.SpeechSynthesisUtterance(text);
+    u.voice = speech.voice; u.lang = speech.voice.lang; u.rate = 0.9;
+    u.onend = u.onerror = function () { if (speech.button === btn) { setPlaying(btn, false); speech.button = null; speech.kind = null; } };
+    speech.button = btn; speech.kind = kind;
+    setPlaying(btn, true);
+    try { speech.synth.speak(u); } catch (e) { stopSpeaking(); }
+  }
+  // A speaker button. kind: 'word' (stops on any change), 'question' (stops when the question changes),
+  // 'text' (keeps reading while the visitor answers questions about the same text).
+  function speakButton(getText, labelKey, kind, wide) {
+    var label = t(labelKey);
+    var btn = el('button', { type: 'button', class: 'speak' + (wide ? ' speak-wide' : ''), lang: lang, dir: lang === 'he' ? 'rtl' : 'ltr',
+      'aria-pressed': 'false', 'data-label': label, 'data-kind': kind || 'word', title: label, 'aria-label': wide ? null : label });
+    btn.innerHTML = ICON_SPEAK; // fixed icon markup from this file, never visitor data
+    if (wide) btn.appendChild(el('span', { class: 'speak-label', text: label }));
+    btn.addEventListener('click', function () { speak(getText(), btn, kind || 'word'); });
+    return btn;
+  }
+  function fillSlot(id, btn) { var s = $(id); clear(s); s.appendChild(btn); }
+
   // ---------- Word details (used by flashcards, the word dialog and quiz feedback) ----------
   function translations(w) {
     var langs = lang === 'nl' ? ['he', 'en'] : [lang];
@@ -209,9 +281,9 @@
     opts = opts || {};
     var box = el('dl', { class: 'word-details' });
     box.appendChild(el('dt', { text: t('meaning') }));
-    box.appendChild(nl('dd', { class: 'def', text: w.def }));
+    box.appendChild(nl('dd', { class: 'def' }, [el('span', { text: w.def }), speakButton(function () { return w.def; }, 'listenMeaning')]));
     box.appendChild(el('dt', { text: t('example') }));
-    box.appendChild(nl('dd', { class: 'example', text: w.ex }));
+    box.appendChild(nl('dd', { class: 'example' }, [el('span', { text: w.ex }), speakButton(function () { return w.ex; }, 'listenExample')]));
     if (w.tip) {
       box.appendChild(el('dt', { class: 'tip-label', text: t('tip') }));
       box.appendChild(nl('dd', { class: 'tip', text: w.tip }));
@@ -250,6 +322,8 @@
     dialogWord = w; dialogReturn = document.activeElement;
     $('dlg-group').textContent = GROUPS[w.g][lang];
     $('dlg-word').textContent = display(w);
+    stopSpeaking();
+    fillSlot('dlg-speak', speakButton(function () { return spoken(w); }, 'listenWord'));
     var d = $('dlg-details'); clear(d); d.appendChild(wordDetails(w));
     syncStarButton($('dlg-star'), w.id);
     var dlg = $('word-dialog');
@@ -257,6 +331,7 @@
     $('dlg-close').focus();
   }
   function closeWord() {
+    stopSpeaking();
     var dlg = $('word-dialog');
     if (typeof dlg.close === 'function') { if (dlg.open) dlg.close(); } else dlg.removeAttribute('open');
   }
@@ -264,6 +339,7 @@
   // ---------- Tabs ----------
   var currentTab = 'groups';
   function showTab(tab) {
+    stopSpeaking();
     currentTab = tab;
     Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) {
       b.setAttribute('aria-pressed', b.getAttribute('data-tab') === tab ? 'true' : 'false');
@@ -315,8 +391,11 @@
     if (cards.index >= list.length) cards.index = list.length - 1;
     if (cards.index < 0) cards.index = 0;
     var w = list[cards.index];
+    stopSpeaking();
     $('card-word').textContent = display(w);
     $('card-word-small').textContent = display(w);
+    fillSlot('card-word-speak', speakButton(function () { return spoken(w); }, 'listenWord'));
+    fillSlot('card-small-speak', speakButton(function () { return spoken(w); }, 'listenWord'));
     var d = $('card-details'); clear(d); d.appendChild(wordDetails(w, { hideTranslation: true }));
     $('card-front').hidden = cards.flipped;
     $('card-back').hidden = !cards.flipped;
@@ -376,6 +455,7 @@
   }
 
   function renderQuiz() {
+    stopSpeaking();
     var area = $('quiz-area'); clear(area);
     var empty = quiz.round.length === 0;
     $('quiz-empty').hidden = !empty;
@@ -395,7 +475,12 @@
       if (!quiz.options) quiz.options = shuffle([w].concat(distractors(w))).map(function (o) { return o.id; });
       var asksMeaning = quiz.mode === 'meaning';
       card.appendChild(el('p', { class: 'ask', id: 'quiz-ask', text: t(asksMeaning ? 'askMeaning' : 'askWord') }));
-      card.appendChild(nl('p', { class: asksMeaning ? 'prompt prompt-word' : 'prompt prompt-def', id: 'quiz-prompt', text: asksMeaning ? display(w) : w.def }));
+      var promptText = asksMeaning ? display(w) : w.def;
+      var sayText = asksMeaning ? spoken(w) : w.def;
+      card.appendChild(nl('div', { class: asksMeaning ? 'prompt prompt-word' : 'prompt prompt-def' }, [
+        el('p', { id: 'quiz-prompt', text: promptText }),
+        speakButton(function () { return sayText; }, asksMeaning ? 'listenWord' : 'listenMeaning')
+      ]));
       var list = nl('ul', { class: 'options', id: 'quiz-options', 'aria-labelledby': 'quiz-ask' });
       quiz.options.forEach(function (id, n) {
         var o = BY_ID[id];
@@ -407,7 +492,10 @@
       card.appendChild(list);
     } else {
       card.appendChild(el('p', { class: 'ask', id: 'quiz-ask', text: t('askType') }));
-      card.appendChild(nl('p', { class: 'prompt prompt-def', id: 'quiz-prompt', text: w.def }));
+      card.appendChild(nl('div', { class: 'prompt prompt-def' }, [
+        el('p', { id: 'quiz-prompt', text: w.def }),
+        speakButton(function () { return w.def; }, 'listenMeaning')
+      ]));
       var input = nl('input', { type: 'text', id: 'quiz-input', autocomplete: 'off', autocapitalize: 'off', spellcheck: 'false', 'aria-describedby': 'quiz-prompt' });
       var form = el('form', { class: 'type-form', id: 'quiz-form', novalidate: true }, [
         el('label', { for: 'quiz-input', text: t('typeLabel') }), input,
@@ -442,7 +530,9 @@
       note ? el('span', { class: 'note', text: ' ' + note }) : null
     ]));
     // In the choice modes the right answer is already highlighted in green; only typing needs it spelled out
-    if (quiz.mode === 'type' && (!ok || note)) fb.appendChild(el('p', null, [t('rightAnswer') + ' ', nl('strong', { text: display(w) })]));
+    var sayWord = speakButton(function () { return spoken(w); }, 'listenWord');
+    if (quiz.mode === 'type' && (!ok || note)) fb.appendChild(el('p', { class: 'answer-word' }, [t('rightAnswer') + ' ', nl('strong', { text: display(w) }), sayWord]));
+    else fb.appendChild(el('p', { class: 'answer-word' }, [t('word') + ': ', nl('strong', { text: display(w) }), sayWord]));
     fb.appendChild(wordDetails(w));
     var last = quiz.i === quiz.round.length - 1;
     var next = el('button', { type: 'button', class: 'btn btn-primary', id: 'quiz-next', text: t(last ? 'seeResult' : 'nextQuestion'),
@@ -514,6 +604,7 @@
   // ---------- Mini texts ----------
   var reader = { textIndex: null, q: 0, score: 0, answered: false, orders: [] };
   function renderTexts() {
+    stopSpeaking();
     var area = $('texts-area'); clear(area);
     if (reader.textIndex === null) {
       area.appendChild(el('p', { class: 'panel-intro', text: t('textsIntro') }));
@@ -538,6 +629,9 @@
       [el('span', { class: 'back-arrow', 'aria-hidden': 'true', text: '← ' }), t('allTexts')]));
     var layout = el('div', { class: 'reader' });
     var article = nl('article', { class: 'reading', 'aria-labelledby': 'reading-title' }, [nl('h3', { id: 'reading-title', text: tx.title })]);
+    article.appendChild(speakButton(function () {
+      return [tx.title].concat(tx.body.map(function (p) { return Array.isArray(p) ? p.join(', ') + '.' : p; })).join('\n');
+    }, 'readText', 'text', true));
     tx.body.forEach(function (p) {
       if (Array.isArray(p)) article.appendChild(el('ul', { class: 'reading-list' }, p.map(function (li) { return el('li', { text: li }); })));
       else article.appendChild(el('p', { text: p }));
@@ -556,6 +650,7 @@
     var h = $('reading-title'); if (h) { h.setAttribute('tabindex', '-1'); h.focus(); }
   }
   function renderTextQuestion() {
+    if (speech.kind === 'question') stopSpeaking(); // a text being read aloud keeps going
     var box = $('reader-questions'); clear(box);
     var tx = TEXTS[reader.textIndex];
     if (reader.q >= tx.qs.length) {
@@ -580,10 +675,15 @@
       el('span', { text: t('score', { s: reader.score }) })
     ]));
     var card = el('div', { class: 'question-card' });
-    card.appendChild(nl('p', { class: 'text-question', id: 'text-q', text: q.q }));
     var list = nl('ul', { class: 'options', id: 'text-options', 'aria-labelledby': 'text-q' });
     var feedback = el('div', { class: 'feedback', id: 'text-feedback', 'aria-live': 'polite' });
     var order = reader.orders[reader.q] || q.opts.map(function (o, n) { return n; });
+    card.appendChild(nl('div', { class: 'word-line q-line' }, [
+      el('p', { class: 'text-question', id: 'text-q', text: q.q }),
+      speakButton(function () {
+        return q.q + '\n' + order.map(function (n, pos) { return 'ABCD'.charAt(pos) + ': ' + q.opts[n]; }).join('.\n') + '.';
+      }, 'listenQuestion', 'question')
+    ]));
     var rightLetter = 'ABCD'.charAt(order.indexOf(q.a));
     order.forEach(function (n, pos) {
       var o = q.opts[n];
@@ -605,7 +705,10 @@
         feedback.appendChild(el('p', { class: 'verdict' }, [el('span', { 'aria-hidden': 'true', text: ok ? '✓ ' : '✗ ' }), t(ok ? 'correct' : 'wrong')]));
         if (!ok) feedback.appendChild(el('p', null, [t('rightAnswer') + ' ', nl('strong', { text: rightLetter + '. ' + q.opts[q.a] })]));
         feedback.appendChild(el('p', { class: 'why-label', text: t('why') }));
-        feedback.appendChild(nl('p', { class: 'why', text: q.why }));
+        feedback.appendChild(nl('div', { class: 'word-line' }, [
+          el('p', { class: 'why', text: q.why }),
+          speakButton(function () { return q.why; }, 'listenWhy', 'question')
+        ]));
         if (q.words && q.words.length) {
           feedback.appendChild(el('p', { class: 'why-label', text: t('lookUp') }));
           feedback.appendChild(el('ul', { class: 'chips' }, q.words.map(function (id) { return el('li', null, [wordChip(BY_ID[id])]); })));
@@ -696,7 +799,15 @@
       if (again) again.focus(); else $('main').focus();
     });
 
+    // Voices often arrive a moment after the page loads; decide "no Dutch voice" only after waiting a little
+    if (speech.synth) {
+      if (typeof speech.synth.addEventListener === 'function') speech.synth.addEventListener('voiceschanged', function () { updateVoice(false); });
+      setTimeout(function () { updateVoice(true); }, 2000);
+    }
+    window.addEventListener('pagehide', stopSpeaking); // some browsers keep talking after the page is left
+
     applyLanguage();
+    updateVoice(!speech.synth);
     document.documentElement.classList.remove('cw-pending');
   }
 

@@ -264,6 +264,91 @@ for (const lang of ['nl', 'he', 'en']) {
   await ctx.close();
 }
 
+// 9) Read aloud: only Dutch voices that run on the device, never an online voice; stops when the view changes
+const fakeSpeech = (voices) => {
+  window.__spoken = []; window.__cancels = 0; window.__current = null;
+  window.SpeechSynthesisUtterance = class { constructor(text) { this.text = text; this.voice = null; this.lang = ''; this.rate = 1; this.onend = null; } };
+  const synth = {
+    getVoices: () => voices,
+    speak(u) { window.__spoken.push({ text: u.text, voice: u.voice && u.voice.name }); window.__current = u; },
+    cancel() { window.__cancels++; const u = window.__current; window.__current = null; if (u && u.onend) setTimeout(() => u.onend({}), 0); },
+    addEventListener() {}
+  };
+  Object.defineProperty(window, 'speechSynthesis', { value: synth, configurable: true });
+};
+{
+  // only an online Dutch voice (and an English device voice): no read-aloud, and a note explains why
+  const [ctx, page, errors] = await fresh();
+  await page.addInitScript(fakeSpeech, [{ name: 'Google Nederlands', lang: 'nl-NL', localService: false }, { name: 'Samantha', lang: 'en-US', localService: true }]);
+  await page.goto(url + '?lang=en', { waitUntil: 'networkidle' });
+  await page.waitForTimeout(2300);
+  check('read-aloud: online-only Dutch voice → note shown', (await page.isVisible('#speech-note')) && (await page.textContent('#speech-note')).includes('no Dutch voice'));
+  await page.click('[data-tab=cards]');
+  check('read-aloud: online-only Dutch voice → no speaker buttons', (await page.locator('.speak:visible').count()) === 0);
+  check('read-aloud: no errors without a voice', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+{
+  // no speech support at all
+  const [ctx, page] = await fresh();
+  await page.addInitScript(() => { delete window.SpeechSynthesisUtterance; Object.defineProperty(window, 'speechSynthesis', { value: undefined, configurable: true }); });
+  await page.goto(url + '?lang=nl', { waitUntil: 'networkidle' });
+  check('read-aloud: browser without speech → note shown at once', await page.isVisible('#speech-note'));
+  await ctx.close();
+}
+{
+  const [ctx, page, errors] = await fresh();
+  await page.addInitScript(fakeSpeech, [
+    { name: 'Google Nederlands', lang: 'nl-NL', localService: false },
+    { name: 'Belgian', lang: 'nl-BE', localService: true },
+    { name: 'Xander', lang: 'nl-NL', localService: true }
+  ]);
+  await page.goto(url + '?lang=en', { waitUntil: 'networkidle' });
+  check('read-aloud: device voice found → no note', !(await page.isVisible('#speech-note')));
+  await page.click('[data-tab=cards]');
+  const word = (await page.textContent('#card-word')).trim();
+  await page.click('#card-word-speak .speak');
+  let last = await page.evaluate(() => window.__spoken.at(-1));
+  check('read-aloud: card word is spoken by the Dutch device voice', last?.text === word.replace(" / ", ", ") && last?.voice === 'Xander', JSON.stringify(last));
+  check('read-aloud: playing button shows Stop', (await page.getAttribute('#card-word-speak .speak', 'aria-pressed')) === 'true' && (await page.getAttribute('#card-word-speak .speak', 'aria-label')) === 'Stop reading');
+  await page.click('#card-word-speak .speak');
+  check('read-aloud: second press stops', (await page.getAttribute('#card-word-speak .speak', 'aria-pressed')) === 'false');
+  await page.click('#card-word-speak .speak');
+  let cancels = await page.evaluate(() => window.__cancels);
+  await page.click('#card-next');
+  check('read-aloud: next card stops the speech', (await page.evaluate(() => window.__cancels)) > cancels && (await page.evaluate(() => window.__current)) === null);
+  await page.click('#card-flip');
+  await page.click('#card-details .def .speak');
+  check('read-aloud: meaning is spoken', (await page.evaluate(() => window.__spoken.at(-1).text)) === (await page.textContent('#card-details .def span')));
+  const issues = await contrastIssues(page);
+  check('read-aloud: contrast holds while a button plays', issues.length === 0, issues.join(', '));
+  await page.click('[data-tab=quiz]');
+  check('read-aloud: changing tab stops the speech', (await page.evaluate(() => window.__current)) === null);
+
+  // mini texts: the whole text keeps playing while answering; a question read-out stops at the next question
+  await page.click('[data-tab=texts]');
+  await page.click('.text-list .text-item:first-child button');
+  await page.click('.reading .speak-wide');
+  const title = await page.evaluate(() => window.CW_TEXTS[0].title);
+  check('read-aloud: text is read from the title', (await page.evaluate(() => window.__spoken.at(-1).text)).startsWith(title));
+  check('read-aloud: wide button label changes to Stop', (await page.textContent('.reading .speak-wide .speak-label')) === 'Stop reading');
+  cancels = await page.evaluate(() => window.__cancels);
+  await page.click('#text-options .option[data-correct="true"]');
+  await page.click('#text-next-q');
+  check('read-aloud: the text keeps playing when the next question appears', (await page.evaluate(() => window.__cancels)) === cancels && (await page.evaluate(() => !!window.__current)));
+  await page.click('.q-line .speak');
+  const spokenQ = await page.evaluate(() => window.__spoken.at(-1).text);
+  check('read-aloud: question is read with its answers', spokenQ.includes('A: ') && spokenQ.includes('D: '), spokenQ.slice(0, 80));
+  await page.click('#text-options .option[data-correct="true"]');
+  await page.click('#text-next-q');
+  check('read-aloud: next question stops the question read-out', (await page.evaluate(() => window.__current)) === null);
+  check('read-aloud: never an online voice', (await page.evaluate(() => window.__spoken.every((s) => s.voice === 'Xander'))));
+  await page.click('#lang-switch [data-lang=he]');
+  check('read-aloud: button labels follow the interface language', (await page.getAttribute('.q-line .speak', 'aria-label')) === 'הקראת השאלה והתשובות');
+  check('read-aloud: no errors', errors.length === 0, errors.join(' | '));
+  await ctx.close();
+}
+
 console.log(results.join('\n'));
 await browser.close();
 process.exit(results.some((r) => r.startsWith('FAIL')) ? 1 : 0);

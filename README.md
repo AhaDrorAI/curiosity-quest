@@ -47,6 +47,7 @@ word groups, flashcards, a quiz (pick the meaning, pick the word, or type the wo
 - **Edit the words:** `site/activities/cito-words/words.js`. **Edit the texts:** `texts.js` in the same folder.
   `npm run check` validates both (missing fields, unknown words, answer indexes, the word count on the hub card).
 - Words with almost the same meaning are listed in `CW_CONFUSABLE`, so they never appear as each other's wrong answer.
+- **Read aloud** uses only Dutch voices that run on the visitor's own device (the browser's speech engine, `localService`). Online voices such as Chrome's "Google Nederlands" are never used, because they send the text to Google. Without a device voice the speaker buttons stay hidden and a note explains how to add one.
 
 ## Credits
 

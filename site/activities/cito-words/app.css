@@ -269,3 +269,35 @@ dialog::backdrop { background: rgba(6, 16, 34, 0.7); }
 @media (prefers-reduced-motion: no-preference) {
   .btn, .option, .word-chip, .tabs button { transition: background-color var(--motion-quick), border-color var(--motion-quick); }
 }
+
+/* ---------- Read aloud ---------- */
+.speak {
+  display: none; flex: none; align-items: center; justify-content: center; gap: var(--space-2);
+  width: 40px; height: 40px; padding: 0; border-radius: 50%;
+  border: 2px solid var(--cw-line); background: #FFFFFF; color: var(--color-card-text);
+  font-weight: var(--font-weight-strong); cursor: pointer; vertical-align: middle;
+}
+html.cw-can-speak .speak { display: inline-flex; }
+.speak:hover { border-color: var(--color-card-text-muted); }
+.speak svg { width: 20px; height: 20px; }
+.speak .i-stop { display: none; }
+.speak[aria-pressed="true"] { background: var(--color-card-text); border-color: var(--color-card-text); color: var(--color-card); }
+.speak[aria-pressed="true"] .i-play { display: none; }
+.speak[aria-pressed="true"] .i-stop { display: block; }
+.speak-wide { width: auto; height: auto; min-height: 40px; padding: var(--space-1) var(--space-3); border-radius: var(--radius-control); margin-bottom: var(--space-3); }
+.speech-note {
+  margin: 0 0 var(--space-4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-control);
+  background: var(--color-page-raised); color: var(--color-text-on-page); border: 1px solid rgba(183, 200, 228, 0.35);
+  font-size: var(--font-size-small);
+}
+.speech-note[hidden] { display: none; }
+.word-line { display: flex; align-items: center; gap: var(--space-2); }
+.word-line > :first-child { min-width: 0; }
+.word-line-center { justify-content: center; }
+.card-word-small { margin-bottom: 0; }
+.card-back .word-line { margin-bottom: var(--space-3); }
+.q-line, .feedback .word-line { align-items: flex-start; justify-content: space-between; }
+.word-details .def, .word-details .example { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); }
+.prompt { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.prompt-word { justify-content: center; }
+.answer-word { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
