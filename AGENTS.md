@@ -28,6 +28,7 @@ site/                      source of the website (what visitors get, after the b
   assets/img/              illustrations (generated), favicon, share image
   assets/fonts/            Rubik, self-hosted (SIL Open Font License)
   activities/<id>/         hosted adventures, one folder each, each with index.html
+                           (cito-words/ keeps its content as data: words.js and texts.js, validated by check.mjs)
 tools/                     build scripts and tests (not published)
 original/                  untouched copies of files as first supplied, for reference
 dist/                      build output that Netlify publishes (never edit by hand)
@@ -51,6 +52,7 @@ node tools/shoot.mjs http://localhost:8080 tools/out   # screenshots to review b
 - `npm test` runs: `check.mjs` (catalog, translations, files, links), `smoke-hub.mjs` (hub),
   `smoke-geo.mjs` (geography first load), `smoke-geo-states.mjs` (states after interaction:
   empty filters, language handoff, quiz timers, map-load failure, contrast after answering),
+  `smoke-cito.mjs` (Cito words: every tab, empty review filter, quiz answer rules, typed answers, texts, blocked storage, phone),
   `a11y.mjs` (axe-core WCAG A/AA scan).
 - Tests derive counts from the catalog; never hard-code the number of adventures.
 

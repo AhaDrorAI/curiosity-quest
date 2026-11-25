@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="nl" dir="ltr" class="cw-pending">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cito-woorden · Curiosity Quest</title>
+  <meta name="description" content="Oefen de woorden die vaak in Cito-toetsen begrijpend lezen staan: flitskaarten, quizzen en korte oefenteksten.">
+  <meta name="theme-color" content="#0F2747">
+  <link rel="icon" href="../../assets/img/favicon.svg" type="image/svg+xml">
+  <script>
+    // Pick the interface language before the page is drawn.
+    // A ?lang= link or the browser language only SHOWS a language; only a click on a language button saves it.
+    (function () {
+      var supported = ['he', 'en', 'nl'], lang = null;
+      try { var q = new URLSearchParams(location.search).get('lang'); if (supported.indexOf(q) > -1) lang = q; } catch (e) {}
+      if (!lang) { try { var s = localStorage.getItem('cito_words_lang'); if (supported.indexOf(s) > -1) lang = s; } catch (e) {} }
+      if (!lang) {
+        var list = navigator.languages || [navigator.language || ''];
+        for (var i = 0; i < list.length && !lang; i++) {
+          var c = String(list[i]).slice(0, 2).toLowerCase();
+          if (c === 'iw') c = 'he';
+          if (supported.indexOf(c) > -1) lang = c;
+        }
+      }
+      window.CW_START_LANG = lang || 'nl';
+      document.documentElement.lang = window.CW_START_LANG;
+      document.documentElement.dir = window.CW_START_LANG === 'he' ? 'rtl' : 'ltr';
+      setTimeout(function () { document.documentElement.classList.remove('cw-pending'); }, 1500);
+    })();
+  </script>
+  <link rel="stylesheet" href="../../assets/fonts/fonts.css">
+  <link rel="stylesheet" href="../../assets/css/tokens.css">
+  <link rel="stylesheet" href="app.css">
+  <script src="words.js" defer></script>
+  <script src="texts.js" defer></script>
+  <script src="app.js" defer></script>
+  <noscript><style>html.cw-pending body { visibility: visible; }</style></noscript>
+</head>
+<body>
+  <a class="skip-link" href="#main" data-t="skipLink">Naar de oefeningen</a>
+
+  <div class="page">
+    <header class="top">
+      <a href="../../" id="back-to-hub" class="pill back-link">
+        <span class="back-arrow" aria-hidden="true">←</span><span data-t="back">Alle avonturen</span>
+      </a>
+      <div class="lang-switch" role="group" id="lang-switch" data-t-aria="langLabel" aria-label="Taal">
+        <button type="button" data-lang="nl" lang="nl"><bdi>Nederlands</bdi></button>
+        <button type="button" data-lang="he" lang="he"><bdi>עברית</bdi></button>
+        <button type="button" data-lang="en" lang="en"><bdi>English</bdi></button>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <div class="intro">
+        <h1 data-t="title">Cito-woorden</h1>
+        <p data-t="subtitle">Woorden die vaak in Cito-toetsen begrijpend lezen staan</p>
+      </div>
+
+      <nav class="tabs" id="tabs" data-t-aria="sections" aria-label="Onderdelen">
+        <button type="button" data-tab="groups" aria-pressed="true" data-t="tabGroups">Woordgroepen</button>
+        <button type="button" data-tab="cards" aria-pressed="false" data-t="tabCards">Flitskaarten</button>
+        <button type="button" data-tab="quiz" aria-pressed="false" data-t="tabQuiz">Quiz</button>
+        <button type="button" data-tab="texts" aria-pressed="false" data-t="tabTexts">Teksten</button>
+      </nav>
+
+      <noscript><p class="panel">JavaScript is nodig voor deze oefeningen. / JavaScript is needed for these exercises.</p></noscript>
+
+      <!-- Word groups -->
+      <section class="panel" id="panel-groups" aria-labelledby="h-groups">
+        <h2 class="visually-hidden" id="h-groups" data-t="tabGroups">Woordgroepen</h2>
+        <p class="panel-intro" data-t="groupsIntro"></p>
+        <div id="groups-list"></div>
+      </section>
+
+      <!-- Flashcards -->
+      <section class="panel" id="panel-cards" aria-labelledby="h-cards" hidden>
+        <h2 class="visually-hidden" id="h-cards" data-t="tabCards">Flitskaarten</h2>
+        <div class="toolbar">
+          <label class="field"><span data-t="whichWords">Welke woorden?</span>
+            <select id="cards-filter"></select>
+          </label>
+          <button type="button" class="btn btn-quiet" id="cards-shuffle" data-t="shuffle">Schudden</button>
+        </div>
+        <p class="empty-state" id="cards-empty" hidden></p>
+        <div id="cards-area">
+          <div class="flashcard" id="flashcard">
+            <div class="card-face card-front" id="card-front" lang="nl" dir="ltr">
+              <p class="card-word" id="card-word"></p>
+              <p class="card-hint" data-t="flipHint"></p>
+            </div>
+            <div class="card-face card-back" id="card-back" hidden>
+              <p class="card-word-small" id="card-word-small" lang="nl" dir="ltr"></p>
+              <div id="card-details"></div>
+            </div>
+          </div>
+          <div class="card-controls">
+            <button type="button" class="btn" id="card-prev" data-t="prev">Vorige</button>
+            <button type="button" class="btn btn-primary" id="card-flip" data-t="flip">Omdraaien</button>
+            <button type="button" class="btn" id="card-next" data-t="next">Volgende</button>
+          </div>
+          <div class="card-meta">
+            <span id="card-counter" aria-live="polite"></span>
+            <button type="button" class="btn btn-star" id="card-star" aria-pressed="false"><span aria-hidden="true">★</span> <span data-t="star">Markeer om te herhalen</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Quiz -->
+      <section class="panel" id="panel-quiz" aria-labelledby="h-quiz" hidden>
+        <h2 class="visually-hidden" id="h-quiz" data-t="tabQuiz">Quiz</h2>
+        <div class="toolbar">
+          <label class="field"><span data-t="whichWords">Welke woorden?</span>
+            <select id="quiz-filter"></select>
+          </label>
+          <div class="mode-switch" role="group" id="quiz-modes" data-t-aria="quizMode" aria-label="Soort vraag">
+            <button type="button" data-mode="meaning" aria-pressed="true" data-t="modeMeaning">Kies de betekenis</button>
+            <button type="button" data-mode="word" aria-pressed="false" data-t="modeWord">Kies het woord</button>
+            <button type="button" data-mode="type" aria-pressed="false" data-t="modeType">Typ het woord</button>
+          </div>
+        </div>
+        <p class="empty-state" id="quiz-empty" hidden></p>
+        <div id="quiz-area"></div>
+      </section>
+
+      <!-- Mini texts -->
+      <section class="panel" id="panel-texts" aria-labelledby="h-texts" hidden>
+        <h2 class="visually-hidden" id="h-texts" data-t="tabTexts">Teksten</h2>
+        <div id="texts-area"></div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p data-t="source"></p>
+    </footer>
+  </div>
+
+  <dialog id="word-dialog" aria-labelledby="dlg-word">
+    <div class="dialog-inner">
+      <p class="dlg-group" id="dlg-group"></p>
+      <h2 class="dlg-word" id="dlg-word" lang="nl" dir="ltr"></h2>
+      <div id="dlg-details"></div>
+      <div class="dlg-actions">
+        <button type="button" class="btn btn-star" id="dlg-star" aria-pressed="false"><span aria-hidden="true">★</span> <span data-t="star">Markeer om te herhalen</span></button>
+        <button type="button" class="btn btn-primary" id="dlg-close" data-t="close">Sluiten</button>
+      </div>
+    </div>
+  </dialog>
+</body>
+</html>

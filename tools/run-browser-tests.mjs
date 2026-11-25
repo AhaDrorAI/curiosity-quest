@@ -16,7 +16,7 @@ const server = createServer(async (req, res) => {
 await new Promise((r) => server.listen(0, '127.0.0.1', r));
 const base = `http://127.0.0.1:${server.address().port}`;
 let failed = false;
-for (const [script, ...args] of [['tools/smoke-hub.mjs'], ['tools/smoke-geo.mjs', 'tools/out'], ['tools/smoke-geo-states.mjs'], ['tools/a11y.mjs']]) {
+for (const [script, ...args] of [['tools/smoke-hub.mjs'], ['tools/smoke-geo.mjs', 'tools/out'], ['tools/smoke-geo-states.mjs'], ['tools/smoke-cito.mjs'], ['tools/a11y.mjs']]) {
   console.log(`\n== ${script}`);
   // run asynchronously so this process can keep serving pages to the test browser
   const code = await new Promise((resolve) => spawn('node', [script, base, ...args], { stdio: 'inherit' }).on('exit', resolve));

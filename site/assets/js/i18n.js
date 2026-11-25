@@ -16,7 +16,8 @@ window.CQ_LANGUAGE_NAMES = {
 window.CQ_SUBJECTS = {
   astronomy: { he: 'אסטרונומיה', en: 'Astronomy', nl: 'Sterrenkunde' },
   geography: { he: 'גיאוגרפיה', en: 'Geography', nl: 'Aardrijkskunde' },
-  dutch: { he: 'השפה ההולנדית', en: 'Dutch language', nl: 'Nederlandse taal' }
+  dutch: { he: 'השפה ההולנדית', en: 'Dutch language', nl: 'Nederlandse taal' },
+  reading: { he: 'הבנת הנקרא', en: 'Reading comprehension', nl: 'Begrijpend lezen' }
 };
 
 window.CQ_TEXT = {

@@ -66,5 +66,30 @@ window.CQ_CATALOG = [
       en: 'Explore Europe',
       nl: 'Verken Europa'
     }
+  },
+  {
+    id: 'cito-words',
+    type: 'hosted',
+    url: 'activities/cito-words/',
+    langParam: 'lang',
+    subjects: ['dutch', 'reading'],
+    languages: ['nl', 'he', 'en'],
+    illustration: 'assets/img/cito-words.svg',
+    fallbackIcon: '📖',
+    title: {
+      he: 'מילים למבחן הסיטו',
+      en: 'Cito test words',
+      nl: 'Cito-woorden'
+    },
+    description: {
+      he: '88 מילים שחוזרות במבחני הבנת הנקרא בהולנדית, עם כרטיסיות, חידונים וטקסטים קצרים לתרגול. הסברים בעברית, באנגלית ובהולנדית.',
+      en: '88 words that keep coming up in Dutch reading tests, with flashcards, quizzes and short practice texts. Help in English, Hebrew and Dutch.',
+      nl: '88 woorden die vaak in Cito-toetsen begrijpend lezen staan, met flitskaarten, quizzen en korte oefenteksten.'
+    },
+    cta: {
+      he: 'מתרגלים מילים',
+      en: 'Practise the words',
+      nl: 'Oefen de woorden'
+    }
   }
 ];

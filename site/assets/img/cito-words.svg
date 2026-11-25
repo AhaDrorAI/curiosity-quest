@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 289" role="img" aria-label="An open book with word bubbles and a magnifying glass">
+  <style>
+    .bubble { animation: float 5s ease-in-out infinite; transform-box: fill-box; transform-origin: 50% 100%; }
+    .b2 { animation-delay: 1.2s; }
+    .b3 { animation-delay: 2.4s; }
+    @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+    .lens { animation: sway 7s ease-in-out infinite; transform-origin: 300px 205px; }
+    @keyframes sway { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+    .spark { animation: twinkle 3.5s ease-in-out infinite; }
+    @keyframes twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+    @media (prefers-reduced-motion: reduce) { * { animation: none !important; } }
+  </style>
+  <rect width="400" height="289" fill="#CFE9F2"/>
+  <g stroke="#9FCBDD" stroke-width="0.8" opacity="0.8">
+    <line x1="0" x2="400" y1="48" y2="48"/><line x1="0" x2="400" y1="120" y2="120"/><line x1="0" x2="400" y1="192" y2="192"/><line x1="0" x2="400" y1="264" y2="264"/>
+    <line y1="0" y2="289" x1="66" x2="66"/><line y1="0" y2="289" x1="166" x2="166"/><line y1="0" y2="289" x1="266" x2="266"/><line y1="0" y2="289" x1="366" x2="366"/>
+  </g>
+
+  <!-- open book -->
+  <g stroke="#0E2240" stroke-width="2.4" stroke-linejoin="round">
+    <path d="M200 150 C170 136 120 134 78 142 L78 250 C120 242 170 244 200 258 Z" fill="#F6FAFF"/>
+    <path d="M200 150 C230 136 280 134 322 142 L322 250 C280 242 230 244 200 258 Z" fill="#F6FAFF"/>
+    <path d="M78 250 C120 242 170 244 200 258 C230 244 280 242 322 250 L322 260 C280 252 230 254 200 268 C170 254 120 252 78 260 Z" fill="#2EC4B6"/>
+    <line x1="200" y1="150" x2="200" y2="258"/>
+  </g>
+  <g stroke="#45597A" stroke-width="3" stroke-linecap="round">
+    <line x1="96" y1="164" x2="182" y2="166"/><line x1="96" y1="180" x2="170" y2="181"/><line x1="96" y1="196" x2="182" y2="198"/>
+    <line x1="96" y1="212" x2="160" y2="213"/><line x1="96" y1="228" x2="178" y2="230"/>
+    <line x1="218" y1="166" x2="304" y2="164"/><line x1="218" y1="181" x2="292" y2="180"/><line x1="218" y1="198" x2="250" y2="197"/>
+  </g>
+
+  <!-- word bubbles -->
+  <g class="bubble b1">
+    <path d="M40 40 h96 a14 14 0 0 1 14 14 v22 a14 14 0 0 1 -14 14 h-58 l-14 16 v-16 h-24 a14 14 0 0 1 -14 -14 v-22 a14 14 0 0 1 14 -14z" fill="#FFC845" stroke="#0E2240" stroke-width="2.2"/>
+    <text x="88" y="73" text-anchor="middle" font-family="Rubik, Arial, sans-serif" font-weight="800" font-size="22" fill="#0E2240">feit</text>
+  </g>
+  <g class="bubble b2">
+    <path d="M158 16 h104 a14 14 0 0 1 14 14 v22 a14 14 0 0 1 -14 14 h-46 l-14 16 v-16 h-44 a14 14 0 0 1 -14 -14 v-22 a14 14 0 0 1 14 -14z" fill="#F6FAFF" stroke="#0E2240" stroke-width="2.2"/>
+    <text x="210" y="49" text-anchor="middle" font-family="Rubik, Arial, sans-serif" font-weight="800" font-size="22" fill="#0E2240">mening</text>
+  </g>
+  <g class="bubble b3">
+    <path d="M276 52 h86 a14 14 0 0 1 14 14 v22 a14 14 0 0 1 -14 14 h-24 v16 l-14 -16 h-48 a14 14 0 0 1 -14 -14 v-22 a14 14 0 0 1 14 -14z" fill="#2EC4B6" stroke="#0E2240" stroke-width="2.2"/>
+    <text x="319" y="85" text-anchor="middle" font-family="Rubik, Arial, sans-serif" font-weight="800" font-size="22" fill="#0E2240">doel</text>
+  </g>
+
+  <!-- magnifying glass over the right page -->
+  <g class="lens">
+    <line x1="292" y1="224" x2="330" y2="262" stroke="#0E2240" stroke-width="11" stroke-linecap="round"/>
+    <line x1="292" y1="224" x2="330" y2="262" stroke="#FFC845" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="266" cy="198" r="34" fill="#F6FAFF" fill-opacity="0.55" stroke="#0E2240" stroke-width="5"/>
+    <text x="266" y="206" text-anchor="middle" font-family="Rubik, Arial, sans-serif" font-weight="800" font-size="22" fill="#0E2240">Aa</text>
+  </g>
+
+  <!-- sparkles -->
+  <g fill="#FFC845" stroke="#0E2240" stroke-width="1.2">
+    <path class="spark" d="M30 160 l4 9 9 4 -9 4 -4 9 -4 -9 -9 -4 9 -4z"/>
+    <path class="spark" style="animation-delay:1.5s" d="M372 150 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/>
+  </g>
+</svg>

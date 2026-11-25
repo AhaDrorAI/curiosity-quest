@@ -49,6 +49,56 @@ for (const e of CATALOG) {
   if (!html.includes(`href="${e.url}"`)) fail(`${where}: add a link to ${e.url} in the <noscript> list in site/index.html`);
 }
 
+// 3) Cito words: the word list and the practice texts are complete and consistent
+{
+  const cw = { window: {} };
+  vm.createContext(cw);
+  for (const f of ['site/activities/cito-words/words.js', 'site/activities/cito-words/texts.js']) {
+    vm.runInContext(readFileSync(root + f, 'utf8'), cw, { filename: f });
+  }
+  const { CW_WORDS: W, CW_GROUPS: G, CW_CONFUSABLE: CONF, CW_SAME_MEANING: SAME, CW_TEXTS: T } = cw.window;
+  const ids = new Set(), words = new Set();
+  for (const w of W) {
+    const where = `cito word "${w.id}"`;
+    if (!/^[a-z-]+$/.test(w.id || '')) fail(`${where}: id must be lowercase letters and dashes`);
+    if (ids.has(w.id)) fail(`${where}: duplicate id`); ids.add(w.id);
+    if (words.has(w.w)) fail(`${where}: the word "${w.w}" is listed twice`); words.add(w.w);
+    for (const k of ['w', 'def', 'ex', 'he', 'en']) if (!w[k]) fail(`${where}: "${k}" is missing`);
+    if (!['', 'de', 'het'].includes(w.art)) fail(`${where}: art must be "de", "het" or ""`);
+    if (!G[w.g]) fail(`${where}: group "${w.g}" is not in CW_GROUPS`);
+    if (w.w.includes('/') || w.w.includes('(')) if (!w.alt?.length) fail(`${where}: "${w.w}" has several forms; list them in alt`);
+  }
+  for (const [g, names] of Object.entries(G)) {
+    for (const l of LANGS) if (!names[l]) fail(`cito group "${g}" has no ${l} name`);
+    if (!W.some((w) => w.g === g)) fail(`cito group "${g}" has no words`);
+  }
+  for (const fam of [...CONF, ...SAME]) for (const id of fam) if (!ids.has(id)) fail(`cito confusable list names unknown word "${id}"`);
+  // a quiz needs 3 wrong answers that are not confusable with the right one
+  const conf = (a, b) => CONF.some((f) => f.includes(a) && f.includes(b));
+  for (const w of W) if (W.filter((o) => o.id !== w.id && !conf(o.id, w.id) && o.def !== w.def).length < 3) fail(`cito word "${w.id}": fewer than 3 possible wrong answers`);
+  const defs = new Map();
+  for (const w of W) { if (defs.has(w.def) && !conf(w.id, defs.get(w.def))) fail(`cito words "${w.id}" and "${defs.get(w.def)}" share a definition but are not marked confusable`); defs.set(w.def, w.id); }
+  const tids = new Set();
+  for (const tx of T) {
+    const where = `cito text "${tx.id}"`;
+    if (tids.has(tx.id)) fail(`${where}: duplicate id`); tids.add(tx.id);
+    if (!tx.title || !tx.body?.length || !tx.qs?.length) fail(`${where}: needs a title, body and questions`);
+    tx.qs.forEach((q, i) => {
+      if (!q.q || !q.why) fail(`${where} question ${i + 1}: needs q and why`);
+      if (!Array.isArray(q.opts) || q.opts.length < 2 || q.opts.length > 4) fail(`${where} question ${i + 1}: needs 2 to 4 answers`);
+      else if (!(q.a >= 0 && q.a < q.opts.length)) fail(`${where} question ${i + 1}: answer index ${q.a} is out of range`);
+      if (new Set(q.opts).size !== q.opts.length) fail(`${where} question ${i + 1}: two answers are the same`);
+      for (const id of q.words || []) if (!ids.has(id)) fail(`${where} question ${i + 1}: unknown word "${id}"`);
+    });
+  }
+  // the hub card states how many words there are
+  const card = CATALOG.find((e) => e.id === 'cito-words');
+  for (const lang of LANGS) {
+    const n = card?.description?.[lang]?.match(/\d+/)?.[0];
+    if (n && Number(n) !== W.length) fail(`catalog "cito-words": the ${lang} description says ${n} words, the list has ${W.length}`);
+  }
+}
+
 if (errors.length) {
   console.error('Check failed:\n- ' + errors.join('\n- '));
   process.exit(1);
